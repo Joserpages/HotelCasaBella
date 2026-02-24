@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Reservaciones | Hotel Casa Bella{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="section-header">
+    <h1>Gestión de reservaciones</h1>
+    <form method="get" class="inline-form">
+      <label for="status">Estado</label>
+      <select name="status" id="status" onchange="this.form.submit()">
+        {% for option in ['all', 'confirmed', 'checked_in', 'checked_out', 'cancelled'] %}
+          <option value="{{ option }}" {% if selected_status == option %}selected{% endif %}>{{ option }}</option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Huésped</th>
+        <th>Habitación</th>
+        <th>Fechas</th>
+        <th>Contacto</th>
+        <th>Estado</th>
+        <th>Actualizar</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for reservation in reservations %}
+      <tr>
+        <td>{{ reservation.id }}</td>
+        <td>{{ reservation.guest_name }} ({{ reservation.guests }} huéspedes)</td>
+        <td>{{ reservation.room_name }}</td>
+        <td>{{ reservation.check_in }} → {{ reservation.check_out }}</td>
+        <td>{{ reservation.email }}<br />{{ reservation.phone }}</td>
+        <td><span class="badge {{ reservation.status }}">{{ reservation.status }}</span></td>
+        <td>
+          <form method="post" action="{{ url_for('update_reservation_status', reservation_id=reservation.id) }}" class="inline-form">
+            <select name="status">
+              {% for option in ['confirmed', 'checked_in', 'checked_out', 'cancelled'] %}
+                <option value="{{ option }}" {% if option == reservation.status %}selected{% endif %}>{{ option }}</option>
+              {% endfor %}
+            </select>
+            <button type="submit">Guardar</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="7">No hay reservaciones para este filtro.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

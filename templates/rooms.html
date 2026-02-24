@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Habitaciones | Hotel Casa Bella{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Inventario de habitaciones</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Categoría</th>
+        <th>Capacidad</th>
+        <th>Tarifa por noche</th>
+        <th>Descripción</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for room in rooms %}
+      <tr>
+        <td>{{ room.name }}</td>
+        <td>{{ room.category }}</td>
+        <td>{{ room.capacity }}</td>
+        <td>${{ "%.2f"|format(room.price_per_night) }}</td>
+        <td>{{ room.description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

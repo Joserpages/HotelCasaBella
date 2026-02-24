@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Panel de control | Hotel Casa Bella{% endblock %}
+{% block content %}
+<section class="grid stats-grid">
+  <article class="card">
+    <h3>Habitaciones totales</h3>
+    <p class="metric">{{ stats.total_rooms }}</p>
+  </article>
+  <article class="card">
+    <h3>Reservaciones activas</h3>
+    <p class="metric">{{ stats.active_reservations }}</p>
+  </article>
+  <article class="card">
+    <h3>Ocupación actual</h3>
+    <p class="metric">{{ stats.occupancy }}%</p>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Próximos check-ins</h2>
+  {% if stats.upcoming_checkins %}
+    <table>
+      <thead>
+        <tr>
+          <th>Huésped</th>
+          <th>Habitación</th>
+          <th>Llegada</th>
+          <th>Salida</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reservation in stats.upcoming_checkins %}
+        <tr>
+          <td>{{ reservation.guest_name }}</td>
+          <td>{{ reservation.room_name }}</td>
+          <td>{{ reservation.check_in }}</td>
+          <td>{{ reservation.check_out }}</td>
+          <td><span class="badge {{ reservation.status }}">{{ reservation.status }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>No hay check-ins programados.</p>
+  {% endif %}
+</section>
+{% endblock %}
