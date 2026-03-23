@@ -1,38 +1,168 @@
 {% extends "base.html" %}
 {% block title %}Nueva reservación | Hotel Casa Bella{% endblock %}
+
 {% block content %}
 <section class="card form-card">
   <h1>Registrar nueva reservación</h1>
-  <form method="post" class="reservation-form">
+
+  <form method="post" class="reservation-form" id="resForm">
     <label>Nombre completo
       <input type="text" name="guest_name" required />
     </label>
+
     <label>Correo electrónico
       <input type="email" name="email" required />
     </label>
+
     <label>Teléfono
       <input type="text" name="phone" required />
     </label>
-    <label>Habitación
-      <select name="room_id" required>
-        {% for room in rooms %}
-          <option value="{{ room.id }}">{{ room.name }} (Capacidad {{ room.capacity }}) - ${{ "%.2f"|format(room.price_per_night) }}</option>
+
+    <!-- ✅ 1) Categoría -->
+    <label>Categoría
+      <select name="category" id="categorySelect" required>
+        <option value="" selected disabled>Selecciona una categoría…</option>
+        {% for c in (categories or []) %}
+          <option value="{{ c }}">{{ c }}</option>
         {% endfor %}
       </select>
     </label>
+
+    <!-- ✅ 2) Habitación (se llena según categoría) -->
+    <label>Habitación
+      <select name="room_id" id="roomSelect" required disabled>
+        <option value="" selected disabled>Primero elige una categoría…</option>
+      </select>
+    </label>
+
+    <!-- ✅ Persona extra (solo para individuales permitidas) -->
+    <div id="extraBox" style="display:none; margin-top:6px;">
+      <label style="display:flex; gap:10px; align-items:center;">
+        <input type="checkbox" id="extraPersonCheck" />
+        <span>Persona extra (+Q<span id="extraFeeTxt">{{ '%.2f'|format(extra_fee or 50) }}</span> por noche)</span>
+      </label>
+      <input type="hidden" name="extra_person" id="extraPersonInput" value="0" />
+      <small style="display:block; margin-top:4px; color: var(--muted);">
+        Disponible solo en Individual Delux permitidas (excepto 208 y 308).
+      </small>
+    </div>
+
     <label>Fecha de llegada
       <input type="date" name="check_in" required />
     </label>
+
     <label>Fecha de salida
       <input type="date" name="check_out" required />
     </label>
+
     <label>Número de huéspedes
       <input type="number" name="guests" min="1" required />
+      <small id="capHint" style="display:block; margin-top:4px; color: var(--muted);"></small>
     </label>
+
     <label>Solicitudes especiales
-      <textarea name="special_requests" rows="3" placeholder="Ej. cama extra, dieta especial..."></textarea>
+      <textarea name="special_requests" rows="3" placeholder=""></textarea>
     </label>
+
     <button type="submit" class="btn-primary">Confirmar reservación</button>
   </form>
 </section>
+
+<script>
+  // Data del backend (seguro)
+  const ROOMS = {{ (rooms_meta or [])|tojson }};
+  const EXTRA_FEE = {{ (extra_fee or 50)|float }};
+
+  const categorySelect = document.getElementById("categorySelect");
+  const roomSelect = document.getElementById("roomSelect");
+  const extraBox = document.getElementById("extraBox");
+  const extraPersonCheck = document.getElementById("extraPersonCheck");
+  const extraPersonInput = document.getElementById("extraPersonInput");
+  const extraFeeTxt = document.getElementById("extraFeeTxt");
+  const capHint = document.getElementById("capHint");
+
+  function moneyQ(n){
+    return "Q" + Number(n || 0).toFixed(2);
+  }
+
+  function resetRoomSelect(msg){
+    roomSelect.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = "";
+    opt.disabled = true;
+    opt.selected = true;
+    opt.textContent = msg;
+    roomSelect.appendChild(opt);
+  }
+
+  function setExtraUI(show, fee){
+    extraBox.style.display = show ? "block" : "none";
+    extraFeeTxt.textContent = Number(fee || EXTRA_FEE).toFixed(2);
+
+    if (!show){
+      extraPersonCheck.checked = false;
+      extraPersonInput.value = "0";
+    }
+  }
+
+  function selectedRoomMeta(){
+    const id = roomSelect.value;
+    if (!id) return null;
+    return ROOMS.find(r => String(r.id) === String(id)) || null;
+  }
+
+  // Inicial
+  resetRoomSelect("Primero elige una categoría…");
+  roomSelect.disabled = true;
+  setExtraUI(false, EXTRA_FEE);
+  capHint.textContent = "";
+
+  categorySelect.addEventListener("change", () => {
+    const cat = categorySelect.value;
+
+    const filtered = ROOMS.filter(r => String(r.category) === String(cat));
+
+    roomSelect.disabled = false;
+    resetRoomSelect(filtered.length ? "Selecciona una habitación…" : "No hay habitaciones en esta categoría");
+
+    filtered.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.id;
+
+      // ✅ tu backend manda extraAllowed
+      const allowExtra = !!r.extraAllowed;
+
+      let capTxt = `Cap ${r.capacity}`;
+      if (allowExtra) capTxt += " (+1 extra)";
+
+      opt.textContent = `${r.name} — ${capTxt} — ${moneyQ(r.price)}`;
+      roomSelect.appendChild(opt);
+    });
+
+    setExtraUI(false, EXTRA_FEE);
+    capHint.textContent = "";
+  });
+
+  roomSelect.addEventListener("change", () => {
+    const r = selectedRoomMeta();
+    if (!r) return;
+
+    const allowExtra = !!r.extraAllowed;
+
+    setExtraUI(allowExtra, EXTRA_FEE);
+
+    if (allowExtra){
+      capHint.textContent = `Capacidad base: ${r.capacity}. Con persona extra: ${Number(r.capacity) + 1}.`;
+    } else {
+      capHint.textContent = `Capacidad máxima: ${r.capacity}.`;
+    }
+
+    extraPersonCheck.checked = false;
+    extraPersonInput.value = "0";
+  });
+
+  extraPersonCheck.addEventListener("change", () => {
+    extraPersonInput.value = extraPersonCheck.checked ? "1" : "0";
+  });
+</script>
 {% endblock %}

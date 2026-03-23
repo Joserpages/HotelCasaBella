@@ -1,34 +1,66 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Hotel Casa Bella{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
-  </head>
-  <body>
-    <header class="topbar">
-      <div class="brand">Hotel Casa Bella</div>
-      <nav>
-        <a href="{{ url_for('dashboard') }}">Dashboard</a>
-        <a href="{{ url_for('rooms') }}">Habitaciones</a>
-        <a href="{{ url_for('list_reservations') }}">Reservaciones</a>
-        <a class="btn-primary" href="{{ url_for('new_reservation') }}">Nueva reservación</a>
-      </nav>
-    </header>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Hotel Casa Bella{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+</head>
 
-    <main class="container">
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          <section class="alerts">
-            {% for category, message in messages %}
-              <article class="alert {{ category }}">{{ message }}</article>
-            {% endfor %}
-          </section>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="{{ url_for('index') }}">
+      <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Hotel Casa Bella">
+      <div class="brand-text">
+        <strong>Hotel Casa Bella</strong>
+        <span>
+          {% if current_user %}
+            {% if current_user.role == 'admin' %}Panel Administrador{% else %}Área Cliente{% endif %}
+          {% else %}
+            Reservaciones y disponibilidad
+          {% endif %}
+        </span>
+      </div>
+    </a>
+
+    <nav class="topnav">
+      <a href="{{ url_for('rooms') }}">Habitaciones</a>
+
+      {% if current_user %}
+        {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+          <a href="{{ url_for('admin_reservations') }}">Reservaciones</a>
+        {% else %}
+          <a href="{{ url_for('my_reservations') }}">Mis reservaciones</a>
+          <a class="btn-primary" href="{{ url_for('new_reservation') }}">Nueva reservación</a>
         {% endif %}
-      {% endwith %}
+        <a class="link-danger" href="{{ url_for('logout') }}">Salir</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Iniciar sesión</a>
+        <a class="btn-primary" href="{{ url_for('register') }}">Crear cuenta</a>
+      {% endif %}
+    </nav>
+  </div>
+</header>
 
-      {% block content %}{% endblock %}
-    </main>
-  </body>
+<main class="container">
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  © {{ 2023 }} Hotel Casa Bella | Todos los derechos reservados | JoserWeb
+                           
+
+</body>
 </html>

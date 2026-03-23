@@ -1,0 +1,421 @@
+{% extends "base.html" %}
+{% block title %}Reservaciones (Admin) | Hotel Casa Bella{% endblock %}
+
+{% block content %}
+<style>
+  .admin-head{
+    display:flex;
+    gap:12px;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+  }
+
+  .admin-filter{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+
+  .filter-tabs{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+
+  .filter-tab{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:10px 16px;
+    border-radius:999px;
+    text-decoration:none;
+    font-weight:700;
+    border:1px solid rgba(0,0,0,.10);
+    background:#fff;
+    color:#1f2937;
+    transition:.2s ease;
+  }
+
+  .filter-tab.active{
+    background:#0d7a5f;
+    color:#fff;
+    border-color:#0d7a5f;
+  }
+
+  .alarm-box{
+    margin-top:18px;
+    background:linear-gradient(180deg, #fff7f7, #fff2f2);
+    border:1px solid #f2b2b2;
+    border-left:6px solid #e53935;
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 10px 24px rgba(229,57,53,.10);
+  }
+
+  .alarm-box.reminder-active{
+    animation:pulseReminder 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulseReminder{
+    0%{ box-shadow:0 0 0 0 rgba(229,57,53,.22), 0 10px 24px rgba(229,57,53,.10); }
+    70%{ box-shadow:0 0 0 12px rgba(229,57,53,0), 0 10px 24px rgba(229,57,53,.18); }
+    100%{ box-shadow:0 0 0 0 rgba(229,57,53,0), 0 10px 24px rgba(229,57,53,.10); }
+  }
+
+  .alarm-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+
+  .alarm-title{
+    margin:0 0 6px 0;
+    color:#8b1e1e;
+    font-size:1.25rem;
+  }
+
+  .alarm-sub{
+    margin:0;
+    color:#7a2e2e;
+  }
+
+  .alarm-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:38px;
+    height:38px;
+    padding:0 12px;
+    border-radius:999px;
+    background:#e53935;
+    color:#fff;
+    font-weight:800;
+  }
+
+  .alarm-list{
+    display:grid;
+    gap:12px;
+    margin-top:16px;
+  }
+
+  .alarm-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:14px;
+    background:#fff;
+    border:1px solid #f0c2c2;
+    border-radius:14px;
+    padding:14px 16px;
+  }
+
+  .alarm-meta{
+    color:#5b6470;
+    line-height:1.65;
+    margin-top:4px;
+  }
+
+  .btn-dismiss-alert{
+    background:#e53935;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:10px 16px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+
+  .new-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:4px 10px;
+    border-radius:999px;
+    background:#e53935;
+    color:#fff;
+    font-size:.82rem;
+    font-weight:800;
+    margin-left:8px;
+  }
+
+  .status-pill{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:.84rem;
+    font-weight:700;
+    background:#eef2f7;
+    color:#334155;
+  }
+
+  .status-confirmed{ background:#e8f7ee; color:#166534; }
+  .status-checked_in{ background:#e8f1ff; color:#1d4ed8; }
+  .status-checked_out{ background:#f1f5f9; color:#475569; }
+  .status-cancelled{ background:#fff1f2; color:#be123c; }
+
+  .table-wrap{
+    margin-top:16px;
+    overflow:auto;
+    border-radius:16px;
+    background:#fff;
+    box-shadow:0 8px 24px rgba(0,0,0,.06);
+  }
+
+  .admin-table{
+    width:100%;
+    border-collapse:collapse;
+    min-width:980px;
+  }
+
+  .admin-table th{
+    text-align:left;
+    padding:14px 12px;
+    background:#f8fafc;
+    color:#334155;
+    border-bottom:1px solid rgba(0,0,0,.08);
+  }
+
+  .admin-table td{
+    padding:12px;
+    border-top:1px solid rgba(0,0,0,.06);
+    vertical-align:middle;
+  }
+
+  .row-new{
+    background:#fff8f8;
+  }
+
+  .empty-box{
+    margin-top:16px;
+    padding:16px;
+    border-radius:14px;
+    background:#f8fafc;
+    color:#475569;
+  }
+</style>
+
+<section class="card">
+  <div class="admin-head">
+    <h1 style="margin:0;">Reservaciones (Admin)</h1>
+
+    <form method="get" action="{{ url_for('admin_reservations') }}" class="admin-filter">
+      <label style="display:flex; gap:10px; align-items:center; margin:0;">
+        <span style="opacity:.8;">Vista</span>
+        <select name="status">
+          <option value="active" {{ 'selected' if selected_status=='active' else '' }}>Pendientes / activas</option>
+          <option value="checked_out" {{ 'selected' if selected_status=='checked_out' else '' }}>Historial check-out</option>
+          <option value="all" {{ 'selected' if selected_status=='all' else '' }}>Todas</option>
+        </select>
+      </label>
+      <button class="btn-primary" type="submit">Filtrar</button>
+    </form>
+  </div>
+
+  <div class="filter-tabs">
+    <a href="{{ url_for('admin_reservations', status='active') }}" class="filter-tab {{ 'active' if selected_status == 'active' else '' }}">Pendientes / activas</a>
+    <a href="{{ url_for('admin_reservations', status='checked_out') }}" class="filter-tab {{ 'active' if selected_status == 'checked_out' else '' }}">Historial check-out</a>
+    <a href="{{ url_for('admin_reservations', status='all') }}" class="filter-tab {{ 'active' if selected_status == 'all' else '' }}">Todas</a>
+  </div>
+
+  {% if has_pending_alerts %}
+    <div id="alarmBox" class="alarm-box reminder-active">
+      <div class="alarm-top">
+        <div>
+          <h2 class="alarm-title">🔔 Nuevas reservaciones pendientes de revisión</h2>
+          <p class="alarm-sub">
+            Estas reservaciones todavía no han sido revisadas por recepción.
+          </p>
+        </div>
+        <div class="alarm-badge">{{ pending_alerts|length }}</div>
+      </div>
+
+      <div class="alarm-list">
+        {% for r in pending_alerts %}
+          <div class="alarm-item">
+            <div>
+              <strong>{{ r.guest_name }}</strong>
+              <span class="new-badge">Nueva</span>
+
+              <div class="alarm-meta">
+                Cliente: {{ r.user_name }}<br>
+                Habitación: {{ r.room_name }}<br>
+                Entrada: {{ r.check_in }} | Salida: {{ r.check_out }}<br>
+                Estado: {{ r.status }}
+              </div>
+            </div>
+
+            <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
+              <button type="submit" class="btn-dismiss-alert">Quitar alarma</button>
+            </form>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if reservations|length == 0 %}
+    <div class="empty-box">No hay reservaciones para mostrar en esta vista.</div>
+  {% else %}
+    <div class="table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Cliente</th>
+            <th>Huésped</th>
+            <th>Habitación</th>
+            <th>Entrada</th>
+            <th>Salida</th>
+            <th>Huéspedes</th>
+            <th>Estado</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in reservations %}
+          <tr class="{{ 'row-new' if r.admin_alert_dismissed == 0 else '' }}">
+            <td>{{ r.user_name }}</td>
+            <td>
+              {{ r.guest_name }}
+              {% if r.admin_alert_dismissed == 0 and r.status != 'checked_out' %}
+                <span class="new-badge">Nueva</span>
+              {% endif %}
+            </td>
+            <td>{{ r.room_name }}</td>
+            <td>{{ r.check_in }}</td>
+            <td>{{ r.check_out }}</td>
+            <td>{{ r.guests }}</td>
+            <td><span class="status-pill status-{{ r.status }}">{{ r.status }}</span></td>
+            <td>
+              <form method="post" action="{{ url_for('admin_update_reservation_status', reservation_id=r.id) }}" style="display:flex; gap:8px; flex-wrap:wrap;">
+                <select name="status" required>
+                  <option value="confirmed" {{ 'selected' if r.status=='confirmed' else '' }}>confirmed</option>
+                  <option value="checked_in" {{ 'selected' if r.status=='checked_in' else '' }}>checked_in</option>
+                  <option value="checked_out" {{ 'selected' if r.status=='checked_out' else '' }}>checked_out</option>
+                  <option value="cancelled" {{ 'selected' if r.status=='cancelled' else '' }}>cancelled</option>
+                </select>
+                <button class="btn-primary" type="submit">Guardar</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</section>
+
+{% if has_pending_alerts %}
+<script>
+  (() => {
+    const alarmBox = document.getElementById("alarmBox");
+    let stopped = false;
+    let beepInterval = null;
+    let titleInterval = null;
+    const originalTitle = document.title;
+
+    function stopReminder() {
+      stopped = true;
+
+      if (beepInterval) clearInterval(beepInterval);
+      if (titleInterval) clearInterval(titleInterval);
+
+      if (alarmBox) {
+        alarmBox.classList.remove("reminder-active");
+      }
+
+      document.title = originalTitle;
+
+      window.removeEventListener("click", stopReminder);
+      window.removeEventListener("keydown", stopReminder);
+      window.removeEventListener("touchstart", stopReminder);
+    }
+
+    function longBeep() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        const ctx = new AudioContextClass();
+        const now = ctx.currentTime;
+
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0.0001, now);
+        master.connect(ctx.destination);
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(740, now);
+        gain1.gain.setValueAtTime(0.0001, now);
+        gain1.gain.exponentialRampToValueAtTime(0.07, now + 0.03);
+        gain1.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+
+        osc1.connect(gain1);
+        gain1.connect(master);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = "triangle";
+        osc2.frequency.setValueAtTime(880, now + 0.45);
+        gain2.gain.setValueAtTime(0.0001, now);
+        gain2.gain.setValueAtTime(0.0001, now + 0.42);
+        gain2.gain.exponentialRampToValueAtTime(0.05, now + 0.48);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1.35);
+
+        osc2.connect(gain2);
+        gain2.connect(master);
+
+        osc1.start(now);
+        osc1.stop(now + 1.28);
+        osc2.start(now + 0.42);
+        osc2.stop(now + 1.38);
+
+        setTimeout(() => {
+          try { ctx.close(); } catch (e) {}
+        }, 1700);
+      } catch (e) {
+        console.log("El navegador bloqueó el aviso automático.", e);
+      }
+    }
+
+    function flashReminder() {
+      if (!alarmBox || stopped) return;
+      alarmBox.classList.remove("reminder-active");
+      void alarmBox.offsetWidth;
+      alarmBox.classList.add("reminder-active");
+    }
+
+    function blinkTitle() {
+      let toggle = false;
+      titleInterval = setInterval(() => {
+        if (stopped) return;
+        document.title = toggle ? "🔔 Reservaciones nuevas pendientes" : originalTitle;
+        toggle = !toggle;
+      }, 1000);
+    }
+
+    flashReminder();
+    longBeep();
+    blinkTitle();
+
+    beepInterval = setInterval(() => {
+      if (stopped) return;
+      flashReminder();
+      longBeep();
+    }, 30000);
+
+    window.addEventListener("click", stopReminder, { once: true });
+    window.addEventListener("keydown", stopReminder, { once: true });
+    window.addEventListener("touchstart", stopReminder, { once: true });
+  })();
+</script>
+{% endif %}
+{% endblock %}

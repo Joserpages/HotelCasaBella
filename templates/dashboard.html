@@ -1,6 +1,161 @@
 {% extends "base.html" %}
 {% block title %}Panel de control | Hotel Casa Bella{% endblock %}
+
 {% block content %}
+<style>
+  .alarm-box{
+    margin-bottom:18px;
+    background:linear-gradient(180deg, #fff7f7, #fff2f2);
+    border:1px solid #f2b2b2;
+    border-left:6px solid #e53935;
+    border-radius:18px;
+    padding:18px;
+    box-shadow:0 10px 24px rgba(229,57,53,.10);
+  }
+
+  .alarm-box.reminder-active{
+    animation:pulseReminder 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulseReminder{
+    0%{ box-shadow:0 0 0 0 rgba(229,57,53,.22), 0 10px 24px rgba(229,57,53,.10); }
+    70%{ box-shadow:0 0 0 12px rgba(229,57,53,0), 0 10px 24px rgba(229,57,53,.18); }
+    100%{ box-shadow:0 0 0 0 rgba(229,57,53,0), 0 10px 24px rgba(229,57,53,.10); }
+  }
+
+  .alarm-top{
+    display:flex;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    align-items:flex-start;
+  }
+
+  .alarm-title{
+    margin:0 0 6px 0;
+    color:#8b1e1e;
+    font-size:1.2rem;
+  }
+
+  .alarm-sub{
+    margin:0;
+    color:#7a2e2e;
+    line-height:1.65;
+  }
+
+  .alarm-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:38px;
+    height:38px;
+    padding:0 12px;
+    border-radius:999px;
+    background:#e53935;
+    color:#fff;
+    font-weight:800;
+  }
+
+  .alarm-list{
+    display:grid;
+    gap:12px;
+    margin-top:16px;
+  }
+
+  .alarm-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:14px;
+    background:#fff;
+    border:1px solid #f0c2c2;
+    border-radius:14px;
+    padding:14px 16px;
+  }
+
+  .alarm-meta{
+    color:#5b6470;
+    line-height:1.65;
+    margin-top:4px;
+  }
+
+  .btn-dismiss-alert{
+    background:#e53935;
+    color:#fff;
+    border:none;
+    border-radius:10px;
+    padding:10px 16px;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+
+  .btn-dismiss-alert:hover{
+    background:#cc2d2d;
+  }
+
+  .new-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:4px 10px;
+    border-radius:999px;
+    background:#e53935;
+    color:#fff;
+    font-size:.82rem;
+    font-weight:800;
+    margin-left:8px;
+  }
+
+  @media (max-width: 900px){
+    .alarm-item{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+
+    .btn-dismiss-alert{
+      width:100%;
+    }
+  }
+</style>
+
+{# SOLO ADMIN VE ALERTAS #}
+{% if current_user and current_user.role == 'admin' and has_pending_alerts %}
+<div id="alarmBox" class="alarm-box reminder-active">
+  <div class="alarm-top">
+    <div>
+      <h2 class="alarm-title">🔔 Nuevas reservaciones pendientes de revisión</h2>
+      <p class="alarm-sub">
+        Hay reservaciones nuevas que todavía no han sido revisadas por recepción.
+      </p>
+    </div>
+    <div class="alarm-badge">{{ pending_alerts|length }}</div>
+  </div>
+
+  <div class="alarm-list">
+    {% for r in pending_alerts %}
+      <div class="alarm-item">
+        <div>
+          <strong>{{ r.guest_name }}</strong>
+          <span class="new-badge">Nueva</span>
+
+          <div class="alarm-meta">
+            Cliente: {{ r.user_name }}<br>
+            Habitación: {{ r.room_name }}<br>
+            Entrada: {{ r.check_in }} | Salida: {{ r.check_out }}<br>
+            Estado: {{ r.status }}
+          </div>
+        </div>
+
+        <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
+          <button type="submit" class="btn-dismiss-alert">Quitar alarma</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <section class="grid stats-grid">
   <article class="card">
     <h3>Habitaciones totales</h3>
@@ -45,4 +200,115 @@
     <p>No hay check-ins programados.</p>
   {% endif %}
 </section>
+
+{% if current_user and current_user.role == 'admin' and has_pending_alerts %}
+<script>
+  (() => {
+    const alarmBox = document.getElementById("alarmBox");
+    let stopped = false;
+    let beepInterval = null;
+    let titleInterval = null;
+    const originalTitle = document.title;
+
+    function stopReminder() {
+      stopped = true;
+
+      if (beepInterval) clearInterval(beepInterval);
+      if (titleInterval) clearInterval(titleInterval);
+
+      if (alarmBox) {
+        alarmBox.classList.remove("reminder-active");
+      }
+
+      document.title = originalTitle;
+
+      window.removeEventListener("click", stopReminder);
+      window.removeEventListener("keydown", stopReminder);
+      window.removeEventListener("touchstart", stopReminder);
+      window.removeEventListener("mousemove", stopReminder);
+      window.removeEventListener("scroll", stopReminder);
+    }
+
+    function longBeep() {
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return;
+
+        const ctx = new AudioContextClass();
+        const now = ctx.currentTime;
+
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0.0001, now);
+        master.connect(ctx.destination);
+
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = "sine";
+        osc1.frequency.setValueAtTime(740, now);
+        gain1.gain.setValueAtTime(0.0001, now);
+        gain1.gain.exponentialRampToValueAtTime(0.07, now + 0.03);
+        gain1.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+
+        osc1.connect(gain1);
+        gain1.connect(master);
+
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = "triangle";
+        osc2.frequency.setValueAtTime(880, now + 0.45);
+        gain2.gain.setValueAtTime(0.0001, now);
+        gain2.gain.setValueAtTime(0.0001, now + 0.42);
+        gain2.gain.exponentialRampToValueAtTime(0.05, now + 0.48);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1.35);
+
+        osc2.connect(gain2);
+        gain2.connect(master);
+
+        osc1.start(now);
+        osc1.stop(now + 1.28);
+        osc2.start(now + 0.42);
+        osc2.stop(now + 1.38);
+
+        setTimeout(() => {
+          try { ctx.close(); } catch (e) {}
+        }, 1700);
+      } catch (e) {
+        console.log("El navegador bloqueó el aviso automático.", e);
+      }
+    }
+
+    function flashReminder() {
+      if (!alarmBox || stopped) return;
+      alarmBox.classList.remove("reminder-active");
+      void alarmBox.offsetWidth;
+      alarmBox.classList.add("reminder-active");
+    }
+
+    function blinkTitle() {
+      let toggle = false;
+      titleInterval = setInterval(() => {
+        if (stopped) return;
+        document.title = toggle ? "🔔 Reservaciones nuevas pendientes" : originalTitle;
+        toggle = !toggle;
+      }, 1000);
+    }
+
+    flashReminder();
+    longBeep();
+    blinkTitle();
+
+    beepInterval = setInterval(() => {
+      if (stopped) return;
+      flashReminder();
+      longBeep();
+    }, 30000);
+
+    window.addEventListener("click", stopReminder, { once: true });
+    window.addEventListener("keydown", stopReminder, { once: true });
+    window.addEventListener("touchstart", stopReminder, { once: true });
+    window.addEventListener("mousemove", stopReminder, { once: true });
+    window.addEventListener("scroll", stopReminder, { once: true });
+  })();
+</script>
+{% endif %}
 {% endblock %}

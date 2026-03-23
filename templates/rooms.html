@@ -19,7 +19,7 @@
         <td>{{ room.name }}</td>
         <td>{{ room.category }}</td>
         <td>{{ room.capacity }}</td>
-        <td>${{ "%.2f"|format(room.price_per_night) }}</td>
+        <td>Q{{ "%.2f"|format(room.price_per_night) }}</td>
         <td>{{ room.description }}</td>
       </tr>
       {% endfor %}

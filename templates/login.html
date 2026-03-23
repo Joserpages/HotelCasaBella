@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sesión | Hotel Casa Bella{% endblock %}
+
+{% block content %}
+<section class="card form-card">
+  <h1>Iniciar sesión</h1>
+
+  <form method="post" class="reservation-form">
+    <label>Correo electrónico
+      <input type="email" name="email" required />
+    </label>
+
+    <label>Contraseña
+      <input type="password" name="password" required />
+    </label>
+
+    <button type="submit" class="btn-primary">Entrar</button>
+  </form>
+
+  <p style="margin-top:14px;">
+    ¿No tenés cuenta?
+    <a href="{{ url_for('register') }}">Crear cuenta</a>
+  </p>
+</section>
+{% endblock %}

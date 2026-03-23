@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Crear cuenta | Hotel Casa Bella{% endblock %}
+
+{% block content %}
+<section class="card form-card">
+  <h1>Crear cuenta</h1>
+
+  <form method="post" class="reservation-form">
+    <label>Nombre completo
+      <input type="text" name="full_name" required />
+    </label>
+
+    <label>Correo electrónico
+      <input type="email" name="email" required />
+    </label>
+
+    <label>Contraseña
+      <input type="password" name="password" required />
+    </label>
+
+    <button type="submit" class="btn-primary">Crear cuenta</button>
+  </form>
+
+  <p style="margin-top:14px;">
+    ¿Ya tenés cuenta?
+    <a href="{{ url_for('login') }}">Iniciar sesión</a>
+  </p>
+</section>
+{% endblock %}
