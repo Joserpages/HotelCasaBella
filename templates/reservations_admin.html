@@ -2,315 +2,683 @@
 {% block title %}Reservaciones (Admin) | Hotel Casa Bella{% endblock %}
 
 {% block content %}
+<section class="admin-res-shell" data-aos="fade-up">
+
+  <section class="admin-res-hero card">
+    <div class="admin-res-hero-copy">
+      <span class="section-kicker">Gestión administrativa</span>
+      <h1>Reservaciones del hotel</h1>
+      <p>
+        Supervisa, filtra y actualiza el estado de las reservaciones desde una vista
+        clara, ordenada y profesional para recepción y administración.
+      </p>
+    </div>
+
+    <form method="get" action="{{ url_for('admin_reservations') }}" class="admin-res-filter-form">
+      <label for="statusFilter">Vista actual</label>
+      <div class="admin-res-filter-row">
+        <select id="statusFilter" name="status">
+          <option value="active" {{ 'selected' if selected_status=='active' else '' }}>Pendientes / activas</option>
+          <option value="checked_out" {{ 'selected' if selected_status=='checked_out' else '' }}>Historial check-out</option>
+          <option value="all" {{ 'selected' if selected_status=='all' else '' }}>Todas</option>
+        </select>
+        <button class="btn btn-primary" type="submit">
+          <i class="bi bi-funnel"></i>
+          Filtrar
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <section class="admin-tabs-wrap">
+    <a href="{{ url_for('admin_reservations', status='active') }}"
+       class="admin-tab {{ 'active' if selected_status == 'active' else '' }}">
+      <i class="bi bi-hourglass-split"></i>
+      Pendientes / activas
+    </a>
+
+    <a href="{{ url_for('admin_reservations', status='checked_out') }}"
+       class="admin-tab {{ 'active' if selected_status == 'checked_out' else '' }}">
+      <i class="bi bi-box-arrow-right"></i>
+      Historial check-out
+    </a>
+
+    <a href="{{ url_for('admin_reservations', status='all') }}"
+       class="admin-tab {{ 'active' if selected_status == 'all' else '' }}">
+      <i class="bi bi-collection"></i>
+      Todas
+    </a>
+  </section>
+
+  {% if has_pending_alerts %}
+  <section id="alarmBox" class="admin-alert-lux reminder-active">
+    <div class="admin-alert-lux-top">
+      <div class="admin-alert-lux-copy">
+        <span class="section-kicker">Centro de alertas</span>
+        <h2>Nuevas reservaciones pendientes de revisión</h2>
+        <p>
+          Estas reservaciones todavía no han sido revisadas por recepción.
+          Confirma los datos y elimina la alerta una vez atendidas.
+        </p>
+      </div>
+
+      <div class="admin-alert-lux-count">
+        <span>{{ pending_alerts|length }}</span>
+        <small>Pendientes</small>
+      </div>
+    </div>
+
+    <div class="admin-alert-lux-list">
+      {% for r in pending_alerts %}
+      <article class="admin-alert-lux-item">
+        <div class="admin-alert-lux-main">
+          <div class="admin-alert-lux-badges">
+            <span class="mini-badge mini-badge-danger">Nueva</span>
+            <span class="mini-badge mini-badge-gold">{{ r.status }}</span>
+          </div>
+
+          <h3>{{ r.guest_name }}</h3>
+
+          <div class="admin-alert-lux-meta">
+            <span><i class="bi bi-person"></i> Cliente: {{ r.user_name }}</span>
+            <span><i class="bi bi-door-open"></i> Habitación: {{ r.room_name }}</span>
+            <span><i class="bi bi-calendar-event"></i> Entrada: {{ r.check_in }}</span>
+            <span><i class="bi bi-calendar-check"></i> Salida: {{ r.check_out }}</span>
+          </div>
+        </div>
+
+        <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
+          <button type="submit" class="btn btn-danger-soft">
+            <i class="bi bi-bell-slash"></i>
+            Quitar alarma
+          </button>
+        </form>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="card admin-res-table-card">
+    <div class="admin-res-section-head">
+      <div>
+        <span class="section-kicker">Listado operativo</span>
+        <h2>Reservaciones registradas</h2>
+        <p>
+          Administra estados, revisa huéspedes y controla la operación diaria del hotel.
+        </p>
+      </div>
+    </div>
+
+    {% if reservations|length == 0 %}
+      <div class="empty-admin-res">
+        <div class="empty-admin-res-icon">
+          <i class="bi bi-calendar2-x"></i>
+        </div>
+        <h3>No hay reservaciones para mostrar</h3>
+        <p>
+          En esta vista no existen registros disponibles en este momento.
+        </p>
+      </div>
+    {% else %}
+      <div class="table-wrap admin-res-mobile-cards">
+        <table class="admin-res-table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Huésped</th>
+              <th>Habitación</th>
+              <th>Entrada</th>
+              <th>Salida</th>
+              <th>Huéspedes</th>
+              <th>Estado</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in reservations %}
+            {% set st = (r.status or '')|lower %}
+            <tr class="{{ 'row-new-lux' if r.admin_alert_dismissed == 0 else '' }}">
+              <td data-label="Cliente">
+                <div class="cell-strong">{{ r.user_name }}</div>
+              </td>
+
+              <td data-label="Huésped">
+                <div class="guest-cell">
+                  <span class="cell-strong">{{ r.guest_name }}</span>
+                  {% if r.admin_alert_dismissed == 0 and r.status != 'checked_out' %}
+                    <span class="mini-badge mini-badge-danger">Nueva</span>
+                  {% endif %}
+                </div>
+              </td>
+
+              <td data-label="Habitación">{{ r.room_name }}</td>
+              <td data-label="Entrada">{{ r.check_in }}</td>
+              <td data-label="Salida">{{ r.check_out }}</td>
+              <td data-label="Huéspedes">{{ r.guests }}</td>
+
+              <td data-label="Estado">
+                <span class="status-badge
+                  {% if st == 'confirmed' %}status-confirmed{% endif %}
+                  {% if st == 'checked_in' %}status-checked-in{% endif %}
+                  {% if st == 'checked_out' %}status-checked-out{% endif %}
+                  {% if st == 'cancelled' %}status-cancelled{% endif %}">
+                  {% if st == 'confirmed' %}
+                    Confirmada
+                  {% elif st == 'checked_in' %}
+                    Check-in
+                  {% elif st == 'checked_out' %}
+                    Check-out
+                  {% elif st == 'cancelled' %}
+                    Cancelada
+                  {% else %}
+                    {{ r.status }}
+                  {% endif %}
+                </span>
+              </td>
+
+              <td data-label="Acción">
+                <form method="post"
+                      action="{{ url_for('admin_update_reservation_status', reservation_id=r.id) }}"
+                      class="admin-inline-form">
+                  <select name="status" required>
+                    <option value="confirmed" {{ 'selected' if r.status=='confirmed' else '' }}>confirmed</option>
+                    <option value="checked_in" {{ 'selected' if r.status=='checked_in' else '' }}>checked_in</option>
+                    <option value="checked_out" {{ 'selected' if r.status=='checked_out' else '' }}>checked_out</option>
+                    <option value="cancelled" {{ 'selected' if r.status=='cancelled' else '' }}>cancelled</option>
+                  </select>
+                  <button class="btn btn-primary btn-sm" type="submit">
+                    <i class="bi bi-check2-circle"></i>
+                    Guardar
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </section>
+</section>
+
 <style>
-  .admin-head{
+  .admin-res-shell{
+    display:grid;
+    gap:22px;
+  }
+
+  .section-kicker{
+    display:inline-block;
+    font-size:.82rem;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    color:var(--gold);
+    margin-bottom:10px;
+    font-weight:700;
+  }
+
+  .admin-res-hero{
     display:flex;
-    gap:12px;
-    align-items:center;
+    align-items:flex-end;
     justify-content:space-between;
+    gap:20px;
     flex-wrap:wrap;
+    padding:30px;
   }
 
-  .admin-filter{
+  .admin-res-hero h1{
+    margin:0;
+    font-size:clamp(2rem, 4vw, 3rem);
+    line-height:1.04;
+  }
+
+  .admin-res-hero p{
+    margin:10px 0 0;
+    max-width:760px;
+    color:var(--muted);
+    line-height:1.85;
+  }
+
+  .admin-res-filter-form{
+    min-width:min(100%, 360px);
+    display:grid;
+    gap:10px;
+  }
+
+  .admin-res-filter-form label{
+    font-weight:700;
+    color:var(--text);
+  }
+
+  .admin-res-filter-row{
     display:flex;
     gap:10px;
     align-items:center;
     flex-wrap:wrap;
   }
 
-  .filter-tabs{
+  .admin-res-filter-row select{
+    flex:1;
+    min-width:190px;
+  }
+
+  .admin-tabs-wrap{
     display:flex;
     gap:10px;
     flex-wrap:wrap;
-    margin-top:14px;
   }
 
-  .filter-tab{
+  .admin-tab{
     display:inline-flex;
     align-items:center;
     justify-content:center;
-    padding:10px 16px;
+    gap:8px;
+    padding:12px 18px;
     border-radius:999px;
-    text-decoration:none;
+    background:rgba(255,255,255,.04);
+    color:var(--muted);
+    border:1px solid rgba(255,255,255,.08);
     font-weight:700;
-    border:1px solid rgba(0,0,0,.10);
-    background:#fff;
-    color:#1f2937;
-    transition:.2s ease;
+    transition:.22s ease;
   }
 
-  .filter-tab.active{
-    background:#0d7a5f;
+  .admin-tab:hover{
+    color:var(--text);
+    background:rgba(255,255,255,.07);
+  }
+
+  .admin-tab.active{
+    background:linear-gradient(135deg, var(--green), var(--green-2));
     color:#fff;
-    border-color:#0d7a5f;
+    border-color:rgba(255,255,255,.10);
+    box-shadow:0 12px 24px rgba(15,90,67,.22);
   }
 
-  .alarm-box{
-    margin-top:18px;
-    background:linear-gradient(180deg, #fff7f7, #fff2f2);
-    border:1px solid #f2b2b2;
-    border-left:6px solid #e53935;
-    border-radius:18px;
-    padding:18px;
-    box-shadow:0 10px 24px rgba(229,57,53,.10);
+  .admin-alert-lux{
+    background:linear-gradient(180deg, rgba(95,16,16,.95), rgba(60,10,10,.95));
+    border:1px solid rgba(255,255,255,.08);
+    border-left:5px solid #ef4444;
+    border-radius:26px;
+    padding:24px;
+    box-shadow:0 18px 36px rgba(0,0,0,.25);
   }
 
-  .alarm-box.reminder-active{
+  .admin-alert-lux.reminder-active{
     animation:pulseReminder 1.4s ease-in-out infinite;
   }
 
   @keyframes pulseReminder{
-    0%{ box-shadow:0 0 0 0 rgba(229,57,53,.22), 0 10px 24px rgba(229,57,53,.10); }
-    70%{ box-shadow:0 0 0 12px rgba(229,57,53,0), 0 10px 24px rgba(229,57,53,.18); }
-    100%{ box-shadow:0 0 0 0 rgba(229,57,53,0), 0 10px 24px rgba(229,57,53,.10); }
+    0%{ box-shadow:0 0 0 0 rgba(239,68,68,.22), 0 18px 36px rgba(0,0,0,.22); }
+    70%{ box-shadow:0 0 0 12px rgba(239,68,68,0), 0 18px 40px rgba(0,0,0,.28); }
+    100%{ box-shadow:0 0 0 0 rgba(239,68,68,0), 0 18px 36px rgba(0,0,0,.22); }
   }
 
-  .alarm-top{
+  .admin-alert-lux-top{
     display:flex;
     align-items:flex-start;
     justify-content:space-between;
-    gap:16px;
+    gap:18px;
     flex-wrap:wrap;
+    margin-bottom:18px;
   }
 
-  .alarm-title{
-    margin:0 0 6px 0;
-    color:#8b1e1e;
-    font-size:1.25rem;
-  }
-
-  .alarm-sub{
+  .admin-alert-lux-copy h2{
     margin:0;
-    color:#7a2e2e;
+    font-size:1.9rem;
+    color:#fff5f5;
   }
 
-  .alarm-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-width:38px;
-    height:38px;
-    padding:0 12px;
-    border-radius:999px;
-    background:#e53935;
-    color:#fff;
+  .admin-alert-lux-copy p{
+    margin:10px 0 0;
+    max-width:760px;
+    color:rgba(255,235,235,.85);
+    line-height:1.8;
+  }
+
+  .admin-alert-lux-count{
+    min-width:110px;
+    padding:14px 16px;
+    border-radius:20px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.10);
+    text-align:center;
+  }
+
+  .admin-alert-lux-count span{
+    display:block;
+    font-size:2rem;
     font-weight:800;
+    color:#fff;
+    line-height:1;
   }
 
-  .alarm-list{
+  .admin-alert-lux-count small{
+    display:block;
+    margin-top:6px;
+    color:rgba(255,235,235,.85);
+    font-weight:600;
+  }
+
+  .admin-alert-lux-list{
     display:grid;
-    gap:12px;
-    margin-top:16px;
+    gap:14px;
   }
 
-  .alarm-item{
+  .admin-alert-lux-item{
     display:flex;
     justify-content:space-between;
     align-items:center;
-    gap:14px;
-    background:#fff;
-    border:1px solid #f0c2c2;
-    border-radius:14px;
-    padding:14px 16px;
+    gap:16px;
+    flex-wrap:wrap;
+    border-radius:20px;
+    padding:18px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.08);
   }
 
-  .alarm-meta{
-    color:#5b6470;
-    line-height:1.65;
-    margin-top:4px;
+  .admin-alert-lux-main{
+    min-width:0;
+    flex:1;
   }
 
-  .btn-dismiss-alert{
-    background:#e53935;
-    color:#fff;
-    border:none;
-    border-radius:10px;
-    padding:10px 16px;
-    font-weight:700;
-    cursor:pointer;
-    white-space:nowrap;
+  .admin-alert-lux-badges{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
   }
 
-  .new-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:4px 10px;
-    border-radius:999px;
-    background:#e53935;
-    color:#fff;
-    font-size:.82rem;
-    font-weight:800;
-    margin-left:8px;
-  }
-
-  .status-pill{
+  .mini-badge{
     display:inline-flex;
     align-items:center;
     justify-content:center;
     padding:6px 10px;
     border-radius:999px;
-    font-size:.84rem;
-    font-weight:700;
-    background:#eef2f7;
-    color:#334155;
+    font-size:.78rem;
+    font-weight:800;
   }
 
-  .status-confirmed{ background:#e8f7ee; color:#166534; }
-  .status-checked_in{ background:#e8f1ff; color:#1d4ed8; }
-  .status-checked_out{ background:#f1f5f9; color:#475569; }
-  .status-cancelled{ background:#fff1f2; color:#be123c; }
-
-  .table-wrap{
-    margin-top:16px;
-    overflow:auto;
-    border-radius:16px;
-    background:#fff;
-    box-shadow:0 8px 24px rgba(0,0,0,.06);
+  .mini-badge-danger{
+    background:#ef4444;
+    color:#fff;
   }
 
-  .admin-table{
+  .mini-badge-gold{
+    background:rgba(200,169,107,.14);
+    color:#f5dfb1;
+    border:1px solid rgba(200,169,107,.18);
+  }
+
+  .admin-alert-lux-item h3{
+    margin:0;
+    color:#fff;
+    font-size:1.1rem;
+  }
+
+  .admin-alert-lux-meta{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:8px 18px;
+    margin-top:12px;
+    color:rgba(255,235,235,.88);
+    line-height:1.7;
+  }
+
+  .admin-alert-lux-meta span{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+  }
+
+  .btn-danger-soft{
+    background:#ef4444;
+    color:#fff;
+  }
+
+  .btn-danger-soft:hover{
+    transform:translateY(-2px);
+    background:#dc2626;
+  }
+
+  .admin-res-table-card{
+    padding:28px;
+  }
+
+  .admin-res-section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+
+  .admin-res-section-head h2{
+    margin:0;
+    font-size:2rem;
+  }
+
+  .admin-res-section-head p{
+    margin:10px 0 0;
+    color:var(--muted-2);
+    line-height:1.8;
+  }
+
+  .admin-res-table{
     width:100%;
-    border-collapse:collapse;
-    min-width:980px;
+    border-collapse:separate;
+    border-spacing:0;
+    min-width:1100px;
+    border-radius:20px;
+    overflow:hidden;
+    background:rgba(255,255,255,.02);
+    border:1px solid rgba(255,255,255,.06);
   }
 
-  .admin-table th{
+  .admin-res-table thead th{
+    background:rgba(255,255,255,.07);
+    color:#f2e8d0;
+    padding:16px 14px;
     text-align:left;
-    padding:14px 12px;
-    background:#f8fafc;
-    color:#334155;
-    border-bottom:1px solid rgba(0,0,0,.08);
+    font-size:.95rem;
+    font-weight:700;
+    border-bottom:1px solid rgba(255,255,255,.08);
   }
 
-  .admin-table td{
-    padding:12px;
-    border-top:1px solid rgba(0,0,0,.06);
+  .admin-res-table tbody td{
+    padding:16px 14px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    color:var(--text);
     vertical-align:middle;
   }
 
-  .row-new{
-    background:#fff8f8;
+  .admin-res-table tbody tr:hover{
+    background:rgba(255,255,255,.03);
   }
 
-  .empty-box{
-    margin-top:16px;
-    padding:16px;
-    border-radius:14px;
-    background:#f8fafc;
-    color:#475569;
+  .admin-res-table tbody tr:last-child td{
+    border-bottom:none;
+  }
+
+  .row-new-lux{
+    background:rgba(239,68,68,.04);
+  }
+
+  .cell-strong{
+    font-weight:700;
+    color:var(--text);
+  }
+
+  .guest-cell{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+
+  .status-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px 12px;
+    border-radius:999px;
+    font-size:.86rem;
+    font-weight:700;
+    border:1px solid rgba(255,255,255,.08);
+    white-space:nowrap;
+  }
+
+  .status-confirmed{
+    background:rgba(34,197,94,.14);
+    color:#dcfce7;
+  }
+
+  .status-checked-in{
+    background:rgba(59,130,246,.14);
+    color:#dbeafe;
+  }
+
+  .status-checked-out{
+    background:rgba(245,158,11,.14);
+    color:#fef3c7;
+  }
+
+  .status-cancelled{
+    background:rgba(239,68,68,.14);
+    color:#fee2e2;
+  }
+
+  .admin-inline-form{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
+  .btn-sm{
+    padding:12px 16px;
+  }
+
+  .empty-admin-res{
+    text-align:center;
+    padding:42px 20px 24px;
+    border:1px dashed rgba(255,255,255,.12);
+    border-radius:22px;
+    background:rgba(255,255,255,.02);
+  }
+
+  .empty-admin-res-icon{
+    width:76px;
+    height:76px;
+    border-radius:50%;
+    margin:0 auto 16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(200,169,107,.12);
+    border:1px solid rgba(200,169,107,.18);
+    color:var(--gold);
+    font-size:1.8rem;
+  }
+
+  .empty-admin-res h3{
+    margin:0 0 10px;
+    font-size:1.5rem;
+  }
+
+  .empty-admin-res p{
+    margin:0 auto;
+    max-width:520px;
+    color:var(--muted);
+    line-height:1.8;
+  }
+
+  @media (max-width: 980px){
+    .admin-alert-lux-meta{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width: 768px){
+    .admin-res-hero,
+    .admin-res-table-card,
+    .admin-alert-lux{
+      padding:20px 16px;
+    }
+
+    .admin-res-filter-row{
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    .admin-res-filter-row .btn{
+      width:100%;
+      justify-content:center;
+    }
+
+    .admin-res-mobile-cards table,
+    .admin-res-mobile-cards thead,
+    .admin-res-mobile-cards tbody,
+    .admin-res-mobile-cards tr,
+    .admin-res-mobile-cards th,
+    .admin-res-mobile-cards td{
+      display:block;
+      width:100%;
+    }
+
+    .admin-res-mobile-cards table{
+      min-width:100%;
+      background:transparent;
+      border:none;
+    }
+
+    .admin-res-mobile-cards thead{
+      display:none;
+    }
+
+    .admin-res-mobile-cards tbody{
+      display:grid;
+      gap:14px;
+    }
+
+    .admin-res-mobile-cards tr{
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      padding:12px;
+    }
+
+    .admin-res-mobile-cards td{
+      border:none;
+      padding:8px 0;
+    }
+
+    .admin-res-mobile-cards td::before{
+      content:attr(data-label);
+      display:block;
+      font-size:.9rem;
+      font-weight:700;
+      color:#f2e8d0;
+      margin-bottom:4px;
+    }
+
+    .admin-inline-form{
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    .admin-inline-form .btn{
+      width:100%;
+      justify-content:center;
+    }
+
+    .admin-alert-lux-item form,
+    .admin-alert-lux-item .btn{
+      width:100%;
+    }
   }
 </style>
-
-<section class="card">
-  <div class="admin-head">
-    <h1 style="margin:0;">Reservaciones (Admin)</h1>
-
-    <form method="get" action="{{ url_for('admin_reservations') }}" class="admin-filter">
-      <label style="display:flex; gap:10px; align-items:center; margin:0;">
-        <span style="opacity:.8;">Vista</span>
-        <select name="status">
-          <option value="active" {{ 'selected' if selected_status=='active' else '' }}>Pendientes / activas</option>
-          <option value="checked_out" {{ 'selected' if selected_status=='checked_out' else '' }}>Historial check-out</option>
-          <option value="all" {{ 'selected' if selected_status=='all' else '' }}>Todas</option>
-        </select>
-      </label>
-      <button class="btn-primary" type="submit">Filtrar</button>
-    </form>
-  </div>
-
-  <div class="filter-tabs">
-    <a href="{{ url_for('admin_reservations', status='active') }}" class="filter-tab {{ 'active' if selected_status == 'active' else '' }}">Pendientes / activas</a>
-    <a href="{{ url_for('admin_reservations', status='checked_out') }}" class="filter-tab {{ 'active' if selected_status == 'checked_out' else '' }}">Historial check-out</a>
-    <a href="{{ url_for('admin_reservations', status='all') }}" class="filter-tab {{ 'active' if selected_status == 'all' else '' }}">Todas</a>
-  </div>
-
-  {% if has_pending_alerts %}
-    <div id="alarmBox" class="alarm-box reminder-active">
-      <div class="alarm-top">
-        <div>
-          <h2 class="alarm-title">🔔 Nuevas reservaciones pendientes de revisión</h2>
-          <p class="alarm-sub">
-            Estas reservaciones todavía no han sido revisadas por recepción.
-          </p>
-        </div>
-        <div class="alarm-badge">{{ pending_alerts|length }}</div>
-      </div>
-
-      <div class="alarm-list">
-        {% for r in pending_alerts %}
-          <div class="alarm-item">
-            <div>
-              <strong>{{ r.guest_name }}</strong>
-              <span class="new-badge">Nueva</span>
-
-              <div class="alarm-meta">
-                Cliente: {{ r.user_name }}<br>
-                Habitación: {{ r.room_name }}<br>
-                Entrada: {{ r.check_in }} | Salida: {{ r.check_out }}<br>
-                Estado: {{ r.status }}
-              </div>
-            </div>
-
-            <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
-              <button type="submit" class="btn-dismiss-alert">Quitar alarma</button>
-            </form>
-          </div>
-        {% endfor %}
-      </div>
-    </div>
-  {% endif %}
-
-  {% if reservations|length == 0 %}
-    <div class="empty-box">No hay reservaciones para mostrar en esta vista.</div>
-  {% else %}
-    <div class="table-wrap">
-      <table class="admin-table">
-        <thead>
-          <tr>
-            <th>Cliente</th>
-            <th>Huésped</th>
-            <th>Habitación</th>
-            <th>Entrada</th>
-            <th>Salida</th>
-            <th>Huéspedes</th>
-            <th>Estado</th>
-            <th>Acción</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in reservations %}
-          <tr class="{{ 'row-new' if r.admin_alert_dismissed == 0 else '' }}">
-            <td>{{ r.user_name }}</td>
-            <td>
-              {{ r.guest_name }}
-              {% if r.admin_alert_dismissed == 0 and r.status != 'checked_out' %}
-                <span class="new-badge">Nueva</span>
-              {% endif %}
-            </td>
-            <td>{{ r.room_name }}</td>
-            <td>{{ r.check_in }}</td>
-            <td>{{ r.check_out }}</td>
-            <td>{{ r.guests }}</td>
-            <td><span class="status-pill status-{{ r.status }}">{{ r.status }}</span></td>
-            <td>
-              <form method="post" action="{{ url_for('admin_update_reservation_status', reservation_id=r.id) }}" style="display:flex; gap:8px; flex-wrap:wrap;">
-                <select name="status" required>
-                  <option value="confirmed" {{ 'selected' if r.status=='confirmed' else '' }}>confirmed</option>
-                  <option value="checked_in" {{ 'selected' if r.status=='checked_in' else '' }}>checked_in</option>
-                  <option value="checked_out" {{ 'selected' if r.status=='checked_out' else '' }}>checked_out</option>
-                  <option value="cancelled" {{ 'selected' if r.status=='cancelled' else '' }}>cancelled</option>
-                </select>
-                <button class="btn-primary" type="submit">Guardar</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  {% endif %}
-</section>
 
 {% if has_pending_alerts %}
 <script>

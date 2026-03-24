@@ -2,204 +2,661 @@
 {% block title %}Panel de control | Hotel Casa Bella{% endblock %}
 
 {% block content %}
-<style>
-  .alarm-box{
-    margin-bottom:18px;
-    background:linear-gradient(180deg, #fff7f7, #fff2f2);
-    border:1px solid #f2b2b2;
-    border-left:6px solid #e53935;
-    border-radius:18px;
-    padding:18px;
-    box-shadow:0 10px 24px rgba(229,57,53,.10);
-  }
+<section class="dashboard-shell" data-aos="fade-up">
 
-  .alarm-box.reminder-active{
-    animation:pulseReminder 1.4s ease-in-out infinite;
-  }
+  {% if current_user and current_user.role == 'admin' and has_pending_alerts %}
+  <section id="alarmBox" class="admin-alert reminder-active">
+    <div class="admin-alert-top">
+      <div class="admin-alert-copy">
+        <span class="section-kicker">Centro de alertas</span>
+        <h2>Nuevas reservaciones pendientes de revisión</h2>
+        <p>
+          Existen reservaciones nuevas que aún no han sido revisadas por recepción.
+          Verifica los datos y marca la alerta cuando ya haya sido atendida.
+        </p>
+      </div>
 
-  @keyframes pulseReminder{
-    0%{ box-shadow:0 0 0 0 rgba(229,57,53,.22), 0 10px 24px rgba(229,57,53,.10); }
-    70%{ box-shadow:0 0 0 12px rgba(229,57,53,0), 0 10px 24px rgba(229,57,53,.18); }
-    100%{ box-shadow:0 0 0 0 rgba(229,57,53,0), 0 10px 24px rgba(229,57,53,.10); }
-  }
-
-  .alarm-top{
-    display:flex;
-    justify-content:space-between;
-    gap:16px;
-    flex-wrap:wrap;
-    align-items:flex-start;
-  }
-
-  .alarm-title{
-    margin:0 0 6px 0;
-    color:#8b1e1e;
-    font-size:1.2rem;
-  }
-
-  .alarm-sub{
-    margin:0;
-    color:#7a2e2e;
-    line-height:1.65;
-  }
-
-  .alarm-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    min-width:38px;
-    height:38px;
-    padding:0 12px;
-    border-radius:999px;
-    background:#e53935;
-    color:#fff;
-    font-weight:800;
-  }
-
-  .alarm-list{
-    display:grid;
-    gap:12px;
-    margin-top:16px;
-  }
-
-  .alarm-item{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:14px;
-    background:#fff;
-    border:1px solid #f0c2c2;
-    border-radius:14px;
-    padding:14px 16px;
-  }
-
-  .alarm-meta{
-    color:#5b6470;
-    line-height:1.65;
-    margin-top:4px;
-  }
-
-  .btn-dismiss-alert{
-    background:#e53935;
-    color:#fff;
-    border:none;
-    border-radius:10px;
-    padding:10px 16px;
-    font-weight:700;
-    cursor:pointer;
-    white-space:nowrap;
-  }
-
-  .btn-dismiss-alert:hover{
-    background:#cc2d2d;
-  }
-
-  .new-badge{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:4px 10px;
-    border-radius:999px;
-    background:#e53935;
-    color:#fff;
-    font-size:.82rem;
-    font-weight:800;
-    margin-left:8px;
-  }
-
-  @media (max-width: 900px){
-    .alarm-item{
-      flex-direction:column;
-      align-items:flex-start;
-    }
-
-    .btn-dismiss-alert{
-      width:100%;
-    }
-  }
-</style>
-
-{# SOLO ADMIN VE ALERTAS #}
-{% if current_user and current_user.role == 'admin' and has_pending_alerts %}
-<div id="alarmBox" class="alarm-box reminder-active">
-  <div class="alarm-top">
-    <div>
-      <h2 class="alarm-title">🔔 Nuevas reservaciones pendientes de revisión</h2>
-      <p class="alarm-sub">
-        Hay reservaciones nuevas que todavía no han sido revisadas por recepción.
-      </p>
+      <div class="admin-alert-count">
+        <span>{{ pending_alerts|length }}</span>
+        <small>Pendientes</small>
+      </div>
     </div>
-    <div class="alarm-badge">{{ pending_alerts|length }}</div>
-  </div>
 
-  <div class="alarm-list">
-    {% for r in pending_alerts %}
-      <div class="alarm-item">
-        <div>
-          <strong>{{ r.guest_name }}</strong>
-          <span class="new-badge">Nueva</span>
+    <div class="admin-alert-list">
+      {% for r in pending_alerts %}
+      <article class="admin-alert-item">
+        <div class="admin-alert-item-main">
+          <div class="admin-alert-badges">
+            <span class="mini-badge mini-badge-danger">Nueva</span>
+            <span class="mini-badge mini-badge-gold">{{ r.status }}</span>
+          </div>
 
-          <div class="alarm-meta">
-            Cliente: {{ r.user_name }}<br>
-            Habitación: {{ r.room_name }}<br>
-            Entrada: {{ r.check_in }} | Salida: {{ r.check_out }}<br>
-            Estado: {{ r.status }}
+          <h3>{{ r.guest_name }}</h3>
+
+          <div class="admin-alert-meta">
+            <span><i class="bi bi-person"></i> Cliente: {{ r.user_name }}</span>
+            <span><i class="bi bi-door-open"></i> Habitación: {{ r.room_name }}</span>
+            <span><i class="bi bi-calendar-event"></i> Entrada: {{ r.check_in }}</span>
+            <span><i class="bi bi-calendar-check"></i> Salida: {{ r.check_out }}</span>
           </div>
         </div>
 
         <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
-          <button type="submit" class="btn-dismiss-alert">Quitar alarma</button>
+          <button type="submit" class="btn btn-danger-soft">
+            <i class="bi bi-bell-slash"></i>
+            Quitar alarma
+          </button>
         </form>
-      </div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<section class="grid stats-grid">
-  <article class="card">
-    <h3>Habitaciones totales</h3>
-    <p class="metric">{{ stats.total_rooms }}</p>
-  </article>
-  <article class="card">
-    <h3>Reservaciones activas</h3>
-    <p class="metric">{{ stats.active_reservations }}</p>
-  </article>
-  <article class="card">
-    <h3>Ocupación actual</h3>
-    <p class="metric">{{ stats.occupancy }}%</p>
-  </article>
-</section>
-
-<section class="card">
-  <h2>Próximos check-ins</h2>
-  {% if stats.upcoming_checkins %}
-    <table>
-      <thead>
-        <tr>
-          <th>Huésped</th>
-          <th>Habitación</th>
-          <th>Llegada</th>
-          <th>Salida</th>
-          <th>Estado</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for reservation in stats.upcoming_checkins %}
-        <tr>
-          <td>{{ reservation.guest_name }}</td>
-          <td>{{ reservation.room_name }}</td>
-          <td>{{ reservation.check_in }}</td>
-          <td>{{ reservation.check_out }}</td>
-          <td><span class="badge {{ reservation.status }}">{{ reservation.status }}</span></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p>No hay check-ins programados.</p>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
   {% endif %}
+
+  <section class="dashboard-hero card">
+    <div class="dashboard-hero-copy">
+      <span class="section-kicker">Panel administrador</span>
+      <h1>Resumen general del hotel</h1>
+      <p>
+        Supervisa ocupación, actividad de reservaciones y próximos movimientos de huéspedes
+        desde un panel más claro, moderno y profesional.
+      </p>
+    </div>
+
+    <div class="dashboard-hero-actions">
+      <a href="{{ url_for('admin_reservations') }}" class="btn btn-gold">
+        <i class="bi bi-journal-check"></i>
+        Ver reservaciones
+      </a>
+    </div>
+  </section>
+
+  <section class="stats-premium">
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-building"></i></div>
+      <div class="stat-copy">
+        <span>Habitaciones totales</span>
+        <strong>{{ stats.total_rooms }}</strong>
+        <small>Inventario registrado</small>
+      </div>
+    </article>
+
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-calendar2-week"></i></div>
+      <div class="stat-copy">
+        <span>Reservaciones activas</span>
+        <strong>{{ stats.active_reservations }}</strong>
+        <small>En curso o confirmadas</small>
+      </div>
+    </article>
+
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-bar-chart-line"></i></div>
+      <div class="stat-copy">
+        <span>Ocupación actual</span>
+        <strong>{{ stats.occupancy }}%</strong>
+        <small>Nivel de uso del hotel</small>
+      </div>
+    </article>
+  </section>
+
+  <section class="card dashboard-table-card">
+    <div class="dashboard-section-head">
+      <div>
+        <span class="section-kicker">Operación diaria</span>
+        <h2>Próximos check-ins</h2>
+        <p>
+          Visualiza las próximas entradas programadas para anticipar la recepción de huéspedes.
+        </p>
+      </div>
+    </div>
+
+    {% if stats.upcoming_checkins %}
+      <div class="table-wrap dashboard-mobile-cards">
+        <table class="dashboard-table">
+          <thead>
+            <tr>
+              <th>Huésped</th>
+              <th>Habitación</th>
+              <th>Llegada</th>
+              <th>Salida</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for reservation in stats.upcoming_checkins %}
+            {% set st = (reservation.status or '')|lower %}
+            <tr>
+              <td data-label="Huésped">
+                <div class="guest-name">{{ reservation.guest_name }}</div>
+              </td>
+              <td data-label="Habitación">{{ reservation.room_name }}</td>
+              <td data-label="Llegada">{{ reservation.check_in }}</td>
+              <td data-label="Salida">{{ reservation.check_out }}</td>
+              <td data-label="Estado">
+                <span class="status-badge
+                  {% if st == 'confirmed' %}status-confirmed{% endif %}
+                  {% if st == 'checked_in' %}status-checked-in{% endif %}
+                  {% if st == 'checked_out' %}status-checked-out{% endif %}
+                  {% if st == 'cancelled' %}status-cancelled{% endif %}">
+                  {% if st == 'confirmed' %}
+                    Confirmada
+                  {% elif st == 'checked_in' %}
+                    Check-in
+                  {% elif st == 'checked_out' %}
+                    Check-out
+                  {% elif st == 'cancelled' %}
+                    Cancelada
+                  {% else %}
+                    {{ reservation.status }}
+                  {% endif %}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-admin-state">
+        <div class="empty-admin-icon">
+          <i class="bi bi-calendar2-x"></i>
+        </div>
+        <h3>No hay check-ins programados</h3>
+        <p>
+          Por ahora no existen llegadas próximas registradas en el sistema.
+        </p>
+      </div>
+    {% endif %}
+  </section>
 </section>
+
+<style>
+  .dashboard-shell{
+    display:grid;
+    gap:22px;
+  }
+
+  .section-kicker{
+    display:inline-block;
+    font-size:.82rem;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    color:var(--gold);
+    margin-bottom:10px;
+    font-weight:700;
+  }
+
+  /* HERO */
+  .dashboard-hero{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+    padding:30px;
+    overflow:hidden;
+    position:relative;
+  }
+
+  .dashboard-hero::before{
+    content:"";
+    position:absolute;
+    inset:auto -40px -40px auto;
+    width:240px;
+    height:240px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(200,169,107,.12), transparent 70%);
+    pointer-events:none;
+  }
+
+  .dashboard-hero h1{
+    margin:0;
+    font-size:clamp(2rem, 4vw, 3rem);
+    line-height:1.04;
+  }
+
+  .dashboard-hero p{
+    margin:10px 0 0;
+    max-width:760px;
+    color:var(--muted);
+    line-height:1.85;
+  }
+
+  .dashboard-hero-actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  /* ALERTA */
+  .admin-alert{
+    background:linear-gradient(180deg, rgba(95,16,16,.95), rgba(60,10,10,.95));
+    border:1px solid rgba(255,255,255,.08);
+    border-left:5px solid #ef4444;
+    border-radius:26px;
+    padding:24px;
+    box-shadow:0 18px 36px rgba(0,0,0,.25);
+  }
+
+  .admin-alert.reminder-active{
+    animation:pulseReminder 1.4s ease-in-out infinite;
+  }
+
+  @keyframes pulseReminder{
+    0%{ box-shadow:0 0 0 0 rgba(239,68,68,.22), 0 18px 36px rgba(0,0,0,.22); }
+    70%{ box-shadow:0 0 0 12px rgba(239,68,68,0), 0 18px 40px rgba(0,0,0,.28); }
+    100%{ box-shadow:0 0 0 0 rgba(239,68,68,0), 0 18px 36px rgba(0,0,0,.22); }
+  }
+
+  .admin-alert-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+    margin-bottom:18px;
+  }
+
+  .admin-alert-copy h2{
+    margin:0;
+    font-size:1.9rem;
+    color:#fff5f5;
+  }
+
+  .admin-alert-copy p{
+    margin:10px 0 0;
+    max-width:760px;
+    color:rgba(255,235,235,.85);
+    line-height:1.8;
+  }
+
+  .admin-alert-count{
+    min-width:110px;
+    padding:14px 16px;
+    border-radius:20px;
+    background:rgba(255,255,255,.08);
+    border:1px solid rgba(255,255,255,.10);
+    text-align:center;
+  }
+
+  .admin-alert-count span{
+    display:block;
+    font-size:2rem;
+    font-weight:800;
+    color:#fff;
+    line-height:1;
+  }
+
+  .admin-alert-count small{
+    display:block;
+    margin-top:6px;
+    color:rgba(255,235,235,.85);
+    font-weight:600;
+  }
+
+  .admin-alert-list{
+    display:grid;
+    gap:14px;
+  }
+
+  .admin-alert-item{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:16px;
+    flex-wrap:wrap;
+    border-radius:20px;
+    padding:18px;
+    background:rgba(255,255,255,.06);
+    border:1px solid rgba(255,255,255,.08);
+  }
+
+  .admin-alert-item-main{
+    min-width:0;
+    flex:1;
+  }
+
+  .admin-alert-badges{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+
+  .mini-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px 10px;
+    border-radius:999px;
+    font-size:.78rem;
+    font-weight:800;
+  }
+
+  .mini-badge-danger{
+    background:#ef4444;
+    color:#fff;
+  }
+
+  .mini-badge-gold{
+    background:rgba(200,169,107,.14);
+    color:#f5dfb1;
+    border:1px solid rgba(200,169,107,.18);
+  }
+
+  .admin-alert-item h3{
+    margin:0;
+    color:#fff;
+    font-size:1.1rem;
+  }
+
+  .admin-alert-meta{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:8px 18px;
+    margin-top:12px;
+    color:rgba(255,235,235,.88);
+    line-height:1.7;
+  }
+
+  .admin-alert-meta span{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+  }
+
+  .btn-danger-soft{
+    background:#ef4444;
+    color:#fff;
+  }
+
+  .btn-danger-soft:hover{
+    transform:translateY(-2px);
+    background:#dc2626;
+  }
+
+  /* STATS */
+  .stats-premium{
+    display:grid;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    gap:18px;
+  }
+
+  .stat-premium-card{
+    position:relative;
+    overflow:hidden;
+    border-radius:26px;
+    padding:28px;
+    background:linear-gradient(180deg, rgba(18,51,40,.96), rgba(12,37,29,.96));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:var(--shadow-lg);
+    min-height:170px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+  }
+
+  .stat-premium-card::after{
+    content:"";
+    position:absolute;
+    right:-20px;
+    bottom:-20px;
+    width:120px;
+    height:120px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(15,90,67,.22), transparent 70%);
+  }
+
+  .stat-icon{
+    width:56px;
+    height:56px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(200,169,107,.10);
+    border:1px solid rgba(200,169,107,.16);
+    color:var(--gold);
+    font-size:1.2rem;
+    margin-bottom:18px;
+  }
+
+  .stat-copy span{
+    display:block;
+    color:var(--muted);
+    font-weight:600;
+    margin-bottom:8px;
+  }
+
+  .stat-copy strong{
+    display:block;
+    color:var(--text);
+    font-size:2.5rem;
+    line-height:1;
+    margin-bottom:10px;
+    font-weight:800;
+  }
+
+  .stat-copy small{
+    color:var(--muted-2);
+    font-size:.95rem;
+  }
+
+  /* TABLE */
+  .dashboard-table-card{
+    padding:28px;
+  }
+
+  .dashboard-section-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-bottom:20px;
+  }
+
+  .dashboard-section-head h2{
+    margin:0;
+    font-size:2rem;
+  }
+
+  .dashboard-section-head p{
+    margin:10px 0 0;
+    color:var(--muted-2);
+    line-height:1.8;
+  }
+
+  .dashboard-table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    min-width:860px;
+    border-radius:20px;
+    overflow:hidden;
+    background:rgba(255,255,255,.02);
+    border:1px solid rgba(255,255,255,.06);
+  }
+
+  .dashboard-table thead th{
+    background:rgba(255,255,255,.07);
+    color:#f2e8d0;
+    padding:16px 14px;
+    text-align:left;
+    font-size:.95rem;
+    font-weight:700;
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+
+  .dashboard-table tbody td{
+    padding:16px 14px;
+    border-bottom:1px solid rgba(255,255,255,.06);
+    color:var(--text);
+    vertical-align:middle;
+  }
+
+  .dashboard-table tbody tr:hover{
+    background:rgba(255,255,255,.03);
+  }
+
+  .dashboard-table tbody tr:last-child td{
+    border-bottom:none;
+  }
+
+  .guest-name{
+    font-weight:700;
+    color:var(--text);
+  }
+
+  .status-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px 12px;
+    border-radius:999px;
+    font-size:.86rem;
+    font-weight:700;
+    border:1px solid rgba(255,255,255,.08);
+    white-space:nowrap;
+  }
+
+  .status-confirmed{
+    background:rgba(34,197,94,.14);
+    color:#dcfce7;
+  }
+
+  .status-checked-in{
+    background:rgba(59,130,246,.14);
+    color:#dbeafe;
+  }
+
+  .status-checked-out{
+    background:rgba(245,158,11,.14);
+    color:#fef3c7;
+  }
+
+  .status-cancelled{
+    background:rgba(239,68,68,.14);
+    color:#fee2e2;
+  }
+
+  .empty-admin-state{
+    text-align:center;
+    padding:42px 20px 24px;
+    border:1px dashed rgba(255,255,255,.12);
+    border-radius:22px;
+    background:rgba(255,255,255,.02);
+  }
+
+  .empty-admin-icon{
+    width:76px;
+    height:76px;
+    border-radius:50%;
+    margin:0 auto 16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(200,169,107,.12);
+    border:1px solid rgba(200,169,107,.18);
+    color:var(--gold);
+    font-size:1.8rem;
+  }
+
+  .empty-admin-state h3{
+    margin:0 0 10px;
+    font-size:1.5rem;
+  }
+
+  .empty-admin-state p{
+    margin:0 auto;
+    max-width:520px;
+    color:var(--muted);
+    line-height:1.8;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 1100px){
+    .stats-premium{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width: 900px){
+    .admin-alert-meta{
+      grid-template-columns:1fr;
+    }
+  }
+
+  @media (max-width: 768px){
+    .dashboard-hero,
+    .dashboard-table-card,
+    .admin-alert{
+      padding:20px 16px;
+    }
+
+    .dashboard-mobile-cards table,
+    .dashboard-mobile-cards thead,
+    .dashboard-mobile-cards tbody,
+    .dashboard-mobile-cards tr,
+    .dashboard-mobile-cards th,
+    .dashboard-mobile-cards td{
+      display:block;
+      width:100%;
+    }
+
+    .dashboard-mobile-cards table{
+      min-width:100%;
+      background:transparent;
+      border:none;
+    }
+
+    .dashboard-mobile-cards thead{
+      display:none;
+    }
+
+    .dashboard-mobile-cards tbody{
+      display:grid;
+      gap:14px;
+    }
+
+    .dashboard-mobile-cards tr{
+      background:rgba(255,255,255,.03);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:18px;
+      padding:12px;
+    }
+
+    .dashboard-mobile-cards td{
+      border:none;
+      padding:8px 0;
+    }
+
+    .dashboard-mobile-cards td::before{
+      content:attr(data-label);
+      display:block;
+      font-size:.9rem;
+      font-weight:700;
+      color:#f2e8d0;
+      margin-bottom:4px;
+    }
+
+    .admin-alert-item{
+      align-items:flex-start;
+    }
+
+    .admin-alert-item form,
+    .admin-alert-item .btn{
+      width:100%;
+    }
+
+    .dashboard-hero-actions .btn{
+      width:100%;
+      justify-content:center;
+    }
+  }
+</style>
 
 {% if current_user and current_user.role == 'admin' and has_pending_alerts %}
 <script>

@@ -2,74 +2,556 @@
 {% block title %}Nueva reservación | Hotel Casa Bella{% endblock %}
 
 {% block content %}
-<section class="card form-card">
-  <h1>Registrar nueva reservación</h1>
+<section class="booking-shell" data-aos="fade-up">
+  <div class="booking-layout">
+    <article class="booking-card card">
+      <div class="booking-head">
+        <div>
+          <span class="booking-kicker">Reservaciones</span>
+          <h1 class="booking-title">Registrar nueva reservación</h1>
+          <p class="booking-subtitle">
+            Completa la información del huésped y selecciona la habitación ideal
+            para registrar una estancia de forma clara, rápida y profesional.
+          </p>
+        </div>
 
-  <form method="post" class="reservation-form" id="resForm">
-    <label>Nombre completo
-      <input type="text" name="guest_name" required />
-    </label>
+        <div class="booking-head-badge">
+          <i class="bi bi-shield-check"></i>
+          <span>Proceso seguro y organizado</span>
+        </div>
+      </div>
 
-    <label>Correo electrónico
-      <input type="email" name="email" required />
-    </label>
+      <form method="post" class="reservation-form-pro" id="resForm">
+        <div class="booking-grid">
+          <div class="field">
+            <label for="guest_name">Nombre completo</label>
+            <div class="input-shell">
+              <i class="bi bi-person"></i>
+              <input type="text" id="guest_name" name="guest_name" placeholder="Ej. Juan Pérez López" required />
+            </div>
+          </div>
 
-    <label>Teléfono
-      <input type="text" name="phone" required />
-    </label>
+          <div class="field">
+            <label for="email">Correo electrónico</label>
+            <div class="input-shell">
+              <i class="bi bi-envelope"></i>
+              <input type="email" id="email" name="email" placeholder="correo@ejemplo.com" required />
+            </div>
+          </div>
 
-    <!-- ✅ 1) Categoría -->
-    <label>Categoría
-      <select name="category" id="categorySelect" required>
-        <option value="" selected disabled>Selecciona una categoría…</option>
-        {% for c in (categories or []) %}
-          <option value="{{ c }}">{{ c }}</option>
-        {% endfor %}
-      </select>
-    </label>
+          <div class="field">
+            <label for="phone">Teléfono</label>
+            <div class="input-shell">
+              <i class="bi bi-telephone"></i>
+              <input type="text" id="phone" name="phone" placeholder="+502 0000-0000" required />
+            </div>
+          </div>
 
-    <!-- ✅ 2) Habitación (se llena según categoría) -->
-    <label>Habitación
-      <select name="room_id" id="roomSelect" required disabled>
-        <option value="" selected disabled>Primero elige una categoría…</option>
-      </select>
-    </label>
+          <div class="field">
+            <label for="categorySelect">Categoría</label>
+            <div class="select-shell">
+              <i class="bi bi-stars"></i>
+              <select name="category" id="categorySelect" required>
+                <option value="" selected disabled>Selecciona una categoría…</option>
+                {% for c in (categories or []) %}
+                  <option value="{{ c }}">{{ c }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
 
-    <!-- ✅ Persona extra (solo para individuales permitidas) -->
-    <div id="extraBox" style="display:none; margin-top:6px;">
-      <label style="display:flex; gap:10px; align-items:center;">
-        <input type="checkbox" id="extraPersonCheck" />
-        <span>Persona extra (+Q<span id="extraFeeTxt">{{ '%.2f'|format(extra_fee or 50) }}</span> por noche)</span>
-      </label>
-      <input type="hidden" name="extra_person" id="extraPersonInput" value="0" />
-      <small style="display:block; margin-top:4px; color: var(--muted);">
-        Disponible solo en Individual Delux permitidas (excepto 208 y 308).
-      </small>
-    </div>
+          <div class="field">
+            <label for="roomSelect">Habitación</label>
+            <div class="select-shell">
+              <i class="bi bi-door-open"></i>
+              <select name="room_id" id="roomSelect" required disabled>
+                <option value="" selected disabled>Primero elige una categoría…</option>
+              </select>
+            </div>
+            <small class="field-note">Se mostrarán solo las habitaciones disponibles de la categoría elegida.</small>
+          </div>
 
-    <label>Fecha de llegada
-      <input type="date" name="check_in" required />
-    </label>
+          <div class="field field-highlight" id="extraBox" style="display:none;">
+            <label class="extra-title">Persona extra</label>
 
-    <label>Fecha de salida
-      <input type="date" name="check_out" required />
-    </label>
+            <div class="extra-box-inner">
+              <div class="extra-copy">
+                <strong>Agregar persona extra</strong>
+                <p>
+                  Disponible solo en Individual Delux permitidas
+                  (excepto 208 y 308).
+                </p>
+              </div>
 
-    <label>Número de huéspedes
-      <input type="number" name="guests" min="1" required />
-      <small id="capHint" style="display:block; margin-top:4px; color: var(--muted);"></small>
-    </label>
+              <label class="extra-toggle">
+                <input type="checkbox" id="extraPersonCheck" />
+                <span class="extra-switch"></span>
+              </label>
+            </div>
 
-    <label>Solicitudes especiales
-      <textarea name="special_requests" rows="3" placeholder=""></textarea>
-    </label>
+            <div class="extra-price">
+              +Q<span id="extraFeeTxt">{{ '%.2f'|format(extra_fee or 50) }}</span> por noche
+            </div>
 
-    <button type="submit" class="btn-primary">Confirmar reservación</button>
-  </form>
+            <input type="hidden" name="extra_person" id="extraPersonInput" value="0" />
+          </div>
+
+          <div class="field">
+            <label for="check_in">Fecha de llegada</label>
+            <div class="input-shell">
+              <i class="bi bi-calendar-event"></i>
+              <input type="date" id="check_in" name="check_in" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="check_out">Fecha de salida</label>
+            <div class="input-shell">
+              <i class="bi bi-calendar-check"></i>
+              <input type="date" id="check_out" name="check_out" required />
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="guests">Número de huéspedes</label>
+            <div class="input-shell">
+              <i class="bi bi-people"></i>
+              <input type="number" id="guests" name="guests" min="1" placeholder="Ej. 2" required />
+            </div>
+            <small id="capHint" class="field-note"></small>
+          </div>
+
+          <div class="field field-full">
+            <label for="special_requests">Solicitudes especiales</label>
+            <div class="textarea-shell">
+              <i class="bi bi-chat-left-text"></i>
+              <textarea
+                id="special_requests"
+                name="special_requests"
+                rows="4"
+                placeholder="Escribe aquí cualquier solicitud adicional para la estancia…"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="booking-actions">
+          <button type="submit" class="btn btn-primary booking-submit">
+            <i class="bi bi-check2-circle"></i>
+            Confirmar reservación
+          </button>
+
+          <a href="{{ url_for('my_reservations') }}" class="btn btn-outline">
+            <i class="bi bi-arrow-left"></i>
+            Volver a mis reservaciones
+          </a>
+        </div>
+      </form>
+    </article>
+
+    <aside class="booking-side card">
+      <div class="booking-side-top">
+        <span class="booking-kicker">Experiencia Casa Bella</span>
+        <h2>Reserva con una presentación más elegante y clara</h2>
+        <p>
+          Este formulario está diseñado para mantener una captura de datos limpia,
+          rápida y profesional, cuidando la experiencia del huésped desde el primer paso.
+        </p>
+      </div>
+
+      <div class="booking-points">
+        <div class="booking-point">
+          <div class="booking-point-icon"><i class="bi bi-lightning-charge"></i></div>
+          <div>
+            <strong>Proceso ágil</strong>
+            <span>Registro simple y ordenado para confirmar la reservación con rapidez.</span>
+          </div>
+        </div>
+
+        <div class="booking-point">
+          <div class="booking-point-icon"><i class="bi bi-building-check"></i></div>
+          <div>
+            <strong>Selección por categoría</strong>
+            <span>Primero eliges el tipo de habitación y luego ves solo opciones válidas.</span>
+          </div>
+        </div>
+
+        <div class="booking-point">
+          <div class="booking-point-icon"><i class="bi bi-person-badge"></i></div>
+          <div>
+            <strong>Información clara</strong>
+            <span>Capacidad, persona extra y datos de estancia visibles en el mismo flujo.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="booking-note">
+        <i class="bi bi-info-circle"></i>
+        <span>Verifica fechas y huéspedes antes de confirmar para evitar inconsistencias.</span>
+      </div>
+    </aside>
+  </div>
 </section>
 
+<style>
+  .booking-shell{
+    padding: 4px 0 10px;
+  }
+
+  .booking-layout{
+    display:grid;
+    grid-template-columns:minmax(0, 1.35fr) 360px;
+    gap:22px;
+    align-items:start;
+    max-width:1180px;
+    margin:0 auto;
+  }
+
+  .booking-card{
+    padding:34px;
+  }
+
+  .booking-side{
+    padding:28px;
+    position:sticky;
+    top:112px;
+  }
+
+  .booking-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+    margin-bottom:28px;
+    flex-wrap:wrap;
+  }
+
+  .booking-kicker{
+    display:inline-block;
+    font-size:.82rem;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    color:var(--gold);
+    margin-bottom:10px;
+    font-weight:700;
+  }
+
+  .booking-title{
+    margin:0;
+    font-size:clamp(2rem, 4vw, 2.9rem);
+    line-height:1.06;
+  }
+
+  .booking-subtitle{
+    margin:10px 0 0;
+    max-width:760px;
+    color:var(--muted-2);
+    line-height:1.85;
+  }
+
+  .booking-head-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:12px 16px;
+    border-radius:999px;
+    background:rgba(200,169,107,.10);
+    border:1px solid rgba(200,169,107,.18);
+    color:#f3dfb9;
+    font-weight:700;
+    white-space:nowrap;
+  }
+
+  .booking-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:18px;
+  }
+
+  .field{
+    min-width:0;
+  }
+
+  .field-full{
+    grid-column:1 / -1;
+  }
+
+  .field label,
+  .extra-title{
+    display:block;
+    margin-bottom:9px;
+    color:var(--text);
+    font-weight:700;
+    font-size:1rem;
+  }
+
+  .field-note{
+    display:block;
+    margin-top:8px;
+    color:var(--muted-2);
+    line-height:1.6;
+    font-size:.92rem;
+  }
+
+  .input-shell,
+  .select-shell,
+  .textarea-shell{
+    position:relative;
+  }
+
+  .input-shell i,
+  .select-shell i,
+  .textarea-shell i{
+    position:absolute;
+    left:16px;
+    top:18px;
+    color:rgba(247,244,238,.62);
+    font-size:1rem;
+    pointer-events:none;
+  }
+
+  .input-shell input,
+  .select-shell select{
+    padding-left:46px;
+  }
+
+  .textarea-shell textarea{
+    padding-left:46px;
+    padding-top:15px;
+  }
+
+  .field-highlight{
+    grid-column:1 / -1;
+    padding:18px;
+    border-radius:20px;
+    background:linear-gradient(180deg, rgba(200,169,107,.08), rgba(200,169,107,.04));
+    border:1px solid rgba(200,169,107,.15);
+  }
+
+  .extra-box-inner{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+  }
+
+  .extra-copy strong{
+    display:block;
+    color:var(--text);
+    margin-bottom:4px;
+    font-size:1rem;
+  }
+
+  .extra-copy p{
+    margin:0;
+    color:var(--muted);
+    line-height:1.7;
+    font-size:.94rem;
+  }
+
+  .extra-price{
+    margin-top:12px;
+    color:#f3dfb9;
+    font-weight:800;
+    font-size:.96rem;
+  }
+
+  .extra-toggle{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .extra-toggle input{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+  }
+
+  .extra-switch{
+    width:58px;
+    height:32px;
+    border-radius:999px;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.14);
+    position:relative;
+    transition:.25s ease;
+  }
+
+  .extra-switch::after{
+    content:"";
+    width:24px;
+    height:24px;
+    border-radius:50%;
+    background:#fff;
+    position:absolute;
+    top:3px;
+    left:4px;
+    transition:.25s ease;
+  }
+
+  .extra-toggle input:checked + .extra-switch{
+    background:linear-gradient(135deg, var(--green), var(--green-2));
+    border-color:rgba(255,255,255,.18);
+  }
+
+  .extra-toggle input:checked + .extra-switch::after{
+    left:28px;
+  }
+
+  .booking-actions{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:24px;
+  }
+
+  .booking-submit{
+    min-width:220px;
+  }
+
+  .booking-side-top h2{
+    margin:0 0 12px;
+    font-family:"Playfair Display", serif;
+    font-size:1.8rem;
+    line-height:1.15;
+  }
+
+  .booking-side-top p{
+    margin:0;
+    color:var(--muted);
+    line-height:1.85;
+  }
+
+  .booking-points{
+    display:grid;
+    gap:14px;
+    margin-top:24px;
+  }
+
+  .booking-point{
+    display:flex;
+    gap:14px;
+    align-items:flex-start;
+    padding:14px;
+    border-radius:18px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.07);
+  }
+
+  .booking-point-icon{
+    width:42px;
+    height:42px;
+    border-radius:14px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(200,169,107,.10);
+    color:var(--gold);
+    flex-shrink:0;
+  }
+
+  .booking-point strong{
+    display:block;
+    color:var(--text);
+    margin-bottom:4px;
+  }
+
+  .booking-point span{
+    color:var(--muted);
+    line-height:1.7;
+    font-size:.95rem;
+  }
+
+  .booking-note{
+    margin-top:22px;
+    display:flex;
+    gap:10px;
+    align-items:flex-start;
+    padding:14px;
+    border-radius:16px;
+    background:rgba(15,90,67,.10);
+    border:1px solid rgba(15,90,67,.18);
+    color:#d9f6eb;
+    line-height:1.7;
+    font-size:.94rem;
+  }
+
+  @media (max-width: 1080px){
+    .booking-layout{
+      grid-template-columns:1fr;
+    }
+
+    .booking-side{
+      position:static;
+    }
+  }
+
+  @media (max-width: 768px){
+    .booking-card,
+    .booking-side{
+      padding:20px 16px;
+    }
+
+    .booking-grid{
+      grid-template-columns:1fr;
+      gap:16px;
+    }
+
+    .booking-head{
+      margin-bottom:22px;
+    }
+
+    .booking-actions{
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    .booking-actions .btn{
+      width:100%;
+      justify-content:center;
+    }
+
+    .extra-box-inner{
+      flex-direction:column;
+      align-items:flex-start;
+    }
+
+    .booking-head-badge{
+      width:100%;
+      justify-content:center;
+      white-space:normal;
+    }
+  }
+  /* ===== INPUT DATE PREMIUM FIX ===== */
+input[type="date"] {
+  color-scheme: dark; /* fuerza modo oscuro */
+}
+
+/* icono del calendario */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1); /* lo vuelve blanco */
+  opacity: 0.9;
+  cursor: pointer;
+}
+
+/* evita fondo blanco raro al abrir */
+input[type="date"]::-webkit-datetime-edit {
+  color: var(--text);
+}
+
+/* placeholder (cuando está vacío) */
+input[type="date"]::-webkit-datetime-edit-text,
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: var(--text);
+}
+</style>
+
 <script>
-  // Data del backend (seguro)
   const ROOMS = {{ (rooms_meta or [])|tojson }};
   const EXTRA_FEE = {{ (extra_fee or 50)|float }};
 
@@ -111,7 +593,6 @@
     return ROOMS.find(r => String(r.id) === String(id)) || null;
   }
 
-  // Inicial
   resetRoomSelect("Primero elige una categoría…");
   roomSelect.disabled = true;
   setExtraUI(false, EXTRA_FEE);
@@ -119,19 +600,20 @@
 
   categorySelect.addEventListener("change", () => {
     const cat = categorySelect.value;
-
     const filtered = ROOMS.filter(r => String(r.category) === String(cat));
 
     roomSelect.disabled = false;
-    resetRoomSelect(filtered.length ? "Selecciona una habitación…" : "No hay habitaciones en esta categoría");
+    resetRoomSelect(
+      filtered.length
+        ? "Selecciona una habitación…"
+        : "No hay habitaciones en esta categoría"
+    );
 
     filtered.forEach(r => {
       const opt = document.createElement("option");
       opt.value = r.id;
 
-      // ✅ tu backend manda extraAllowed
       const allowExtra = !!r.extraAllowed;
-
       let capTxt = `Cap ${r.capacity}`;
       if (allowExtra) capTxt += " (+1 extra)";
 
@@ -148,7 +630,6 @@
     if (!r) return;
 
     const allowExtra = !!r.extraAllowed;
-
     setExtraUI(allowExtra, EXTRA_FEE);
 
     if (allowExtra){

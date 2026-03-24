@@ -1,0 +1,389 @@
+{% extends "base.html" %}
+{% block title %}Panel Superadmin | Hotel Casa Bella{% endblock %}
+
+{% block content %}
+<section class="dashboard-shell" data-aos="fade-up">
+
+  {% if has_pending_alerts %}
+  <section id="alarmBox" class="admin-alert reminder-active">
+    <div class="admin-alert-top">
+      <div class="admin-alert-copy">
+        <span class="section-kicker">Centro de alertas</span>
+        <h2>Reservaciones nuevas pendientes de revisión</h2>
+        <p>
+          Como superadmin puedes supervisar alertas, revisar reservaciones recientes
+          y tomar decisiones administrativas desde un solo panel.
+        </p>
+      </div>
+
+      <div class="admin-alert-count">
+        <span>{{ pending_alerts|length }}</span>
+        <small>Pendientes</small>
+      </div>
+    </div>
+
+    <div class="admin-alert-list">
+      {% for r in pending_alerts[:5] %}
+      <article class="admin-alert-item">
+        <div class="admin-alert-item-main">
+          <div class="admin-alert-badges">
+            <span class="mini-badge mini-badge-danger">Nueva</span>
+            <span class="mini-badge mini-badge-gold">{{ r.status }}</span>
+          </div>
+
+          <h3>{{ r.guest_name }}</h3>
+
+          <div class="admin-alert-meta">
+            <span><i class="bi bi-person"></i> Cliente: {{ r.user_name }}</span>
+            <span><i class="bi bi-door-open"></i> Habitación: {{ r.room_name }}</span>
+            <span><i class="bi bi-calendar-event"></i> Entrada: {{ r.check_in }}</span>
+            <span><i class="bi bi-calendar-check"></i> Salida: {{ r.check_out }}</span>
+          </div>
+        </div>
+
+        <a href="{{ url_for('admin_reservations') }}" class="btn btn-danger-soft">
+          <i class="bi bi-eye"></i>
+          Ver reservas
+        </a>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <section class="dashboard-hero card">
+    <div class="dashboard-hero-copy">
+      <span class="section-kicker">Panel superadmin</span>
+      <h1>Control total del hotel</h1>
+      <p>
+        Gestiona usuarios, analiza el movimiento mensual, revisa ingresos estimados
+        y descarga reportes avanzados desde un panel ejecutivo.
+      </p>
+    </div>
+
+    <div class="dashboard-hero-actions">
+      <a href="{{ url_for('superadmin_users') }}" class="btn btn-outline-light">
+        <i class="bi bi-people"></i>
+        Gestionar usuarios
+      </a>
+
+      <a href="{{ url_for('superadmin_export_monthly_report', month=month_label) }}" class="btn btn-gold">
+        <i class="bi bi-file-earmark-excel"></i>
+        Descargar Excel
+      </a>
+    </div>
+  </section>
+
+  <section class="stats-premium stats-premium-super">
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-building"></i></div>
+      <div class="stat-copy">
+        <span>Habitaciones totales</span>
+        <strong>{{ stats.total_rooms }}</strong>
+        <small>Inventario activo</small>
+      </div>
+    </article>
+
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-calendar2-week"></i></div>
+      <div class="stat-copy">
+        <span>Reservaciones activas</span>
+        <strong>{{ stats.active_reservations }}</strong>
+        <small>Confirmadas o en curso</small>
+      </div>
+    </article>
+
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-bar-chart-line"></i></div>
+      <div class="stat-copy">
+        <span>Ocupación actual</span>
+        <strong>{{ stats.occupancy }}%</strong>
+        <small>Nivel de uso actual</small>
+      </div>
+    </article>
+
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+      <div class="stat-copy">
+        <span>Ingresos estimados</span>
+        <strong>Q{{ '%.2f'|format(monthly_income) }}</strong>
+        <small>Mes {{ month_label }}</small>
+      </div>
+    </article>
+
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+      <div class="stat-copy">
+        <span>Usuarios totales</span>
+        <strong>{{ stats.total_users }}</strong>
+        <small>{{ stats.total_clients }} clientes</small>
+      </div>
+    </article>
+
+    <article class="stat-premium-card">
+      <div class="stat-icon"><i class="bi bi-shield-lock"></i></div>
+      <div class="stat-copy">
+        <span>Administración</span>
+        <strong>{{ stats.total_admins + stats.total_superadmins }}</strong>
+        <small>{{ stats.total_superadmins }} superadmin / {{ stats.total_admins }} admin</small>
+      </div>
+    </article>
+  </section>
+
+  <section class="analytics-grid">
+    <article class="card analytics-card">
+      <div class="dashboard-section-head">
+        <div>
+          <span class="section-kicker">Estados</span>
+          <h2>Resumen operativo</h2>
+        </div>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-mini confirmed">
+          <span>Confirmadas</span>
+          <strong>{{ status_counter.confirmed }}</strong>
+        </div>
+        <div class="summary-mini checkedin">
+          <span>Check-in</span>
+          <strong>{{ status_counter.checked_in }}</strong>
+        </div>
+        <div class="summary-mini checkedout">
+          <span>Check-out</span>
+          <strong>{{ status_counter.checked_out }}</strong>
+        </div>
+        <div class="summary-mini cancelled">
+          <span>Canceladas</span>
+          <strong>{{ status_counter.cancelled }}</strong>
+        </div>
+      </div>
+    </article>
+
+    <article class="card analytics-card">
+      <div class="dashboard-section-head">
+        <div>
+          <span class="section-kicker">Ranking</span>
+          <h2>Habitaciones con más movimiento</h2>
+        </div>
+      </div>
+
+      {% if top_rooms %}
+      <div class="top-room-list">
+        {% for room_name, qty in top_rooms %}
+        <div class="top-room-item">
+          <div>
+            <strong>{{ room_name }}</strong>
+            <small>{{ qty }} movimiento(s)</small>
+          </div>
+          <span class="mini-badge mini-badge-gold">{{ qty }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="muted-text">Sin datos para mostrar.</p>
+      {% endif %}
+    </article>
+  </section>
+
+  <section class="card dashboard-table-card">
+    <div class="dashboard-section-head">
+      <div>
+        <span class="section-kicker">Reporte mensual</span>
+        <h2>Movimientos del mes {{ month_label }}</h2>
+        <p>
+          Revisión detallada del mes seleccionado, con importes y estado actual.
+        </p>
+      </div>
+
+      <form method="get" class="month-filter-form">
+        <label for="month">Mes</label>
+        <input type="month" id="month" name="month" value="{{ month_label }}">
+        <button type="submit" class="btn btn-outline-light">
+          <i class="bi bi-funnel"></i>
+          Filtrar
+        </button>
+      </form>
+    </div>
+
+    {% if monthly_movements %}
+    <div class="table-wrap dashboard-mobile-cards">
+      <table class="dashboard-table">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Usuario</th>
+            <th>Huésped</th>
+            <th>Habitación</th>
+            <th>Entrada</th>
+            <th>Salida</th>
+            <th>Estado</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for mv in monthly_movements %}
+          {% set st = (mv.status or '')|lower %}
+          <tr>
+            <td data-label="Fecha">{{ mv.created_at }}</td>
+            <td data-label="Usuario">{{ mv.user_name }}</td>
+            <td data-label="Huésped"><div class="guest-name">{{ mv.guest_name }}</div></td>
+            <td data-label="Habitación">{{ mv.room_name }}</td>
+            <td data-label="Entrada">{{ mv.check_in }}</td>
+            <td data-label="Salida">{{ mv.check_out }}</td>
+            <td data-label="Estado">
+              <span class="status-badge
+                {% if st == 'confirmed' %}status-confirmed{% endif %}
+                {% if st == 'checked_in' %}status-checked-in{% endif %}
+                {% if st == 'checked_out' %}status-checked-out{% endif %}
+                {% if st == 'cancelled' %}status-cancelled{% endif %}">
+                {% if st == 'confirmed' %}
+                  Confirmada
+                {% elif st == 'checked_in' %}
+                  Check-in
+                {% elif st == 'checked_out' %}
+                  Check-out
+                {% elif st == 'cancelled' %}
+                  Cancelada
+                {% else %}
+                  {{ mv.status }}
+                {% endif %}
+              </span>
+            </td>
+            <td data-label="Total">Q{{ '%.2f'|format(reservation_total_for_template(mv)) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-admin-state">
+      <div class="empty-admin-icon">
+        <i class="bi bi-file-earmark-x"></i>
+      </div>
+      <h3>No hay movimientos en este mes</h3>
+      <p>No se encontraron reservaciones creadas en el periodo seleccionado.</p>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="card dashboard-table-card">
+    <div class="dashboard-section-head">
+      <div>
+        <span class="section-kicker">Ingresos por día</span>
+        <h2>Resumen diario</h2>
+      </div>
+    </div>
+
+    {% if ingresos_por_dia %}
+    <div class="income-day-list">
+      {% for fecha, monto in ingresos_por_dia %}
+      <div class="income-day-item">
+        <strong>{{ fecha }}</strong>
+        <span>Q{{ '%.2f'|format(monto) }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="muted-text">No hay ingresos registrados en este periodo.</p>
+    {% endif %}
+  </section>
+</section>
+
+<style>
+  .dashboard-shell{display:grid;gap:22px}
+  .section-kicker{display:inline-block;font-size:.82rem;text-transform:uppercase;letter-spacing:.18em;color:var(--gold);margin-bottom:10px;font-weight:700}
+  .dashboard-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;padding:30px;overflow:hidden;position:relative}
+  .dashboard-hero::before{content:"";position:absolute;inset:auto -40px -40px auto;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle, rgba(200,169,107,.12), transparent 70%);pointer-events:none}
+  .dashboard-hero h1{margin:0;font-size:clamp(2rem, 4vw, 3rem);line-height:1.04}
+  .dashboard-hero p{margin:10px 0 0;max-width:760px;color:var(--muted);line-height:1.85}
+  .dashboard-hero-actions{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .admin-alert{background:linear-gradient(180deg, rgba(95,16,16,.95), rgba(60,10,10,.95));border:1px solid rgba(255,255,255,.08);border-left:5px solid #ef4444;border-radius:26px;padding:24px;box-shadow:0 18px 36px rgba(0,0,0,.25)}
+  .admin-alert.reminder-active{animation:pulseReminder 1.4s ease-in-out infinite}
+  @keyframes pulseReminder{
+    0%{ box-shadow:0 0 0 0 rgba(239,68,68,.22), 0 18px 36px rgba(0,0,0,.22); }
+    70%{ box-shadow:0 0 0 12px rgba(239,68,68,0), 0 18px 40px rgba(0,0,0,.28); }
+    100%{ box-shadow:0 0 0 0 rgba(239,68,68,0), 0 18px 36px rgba(0,0,0,.22); }
+  }
+  .admin-alert-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:18px}
+  .admin-alert-copy h2{margin:0;font-size:1.9rem;color:#fff5f5}
+  .admin-alert-copy p{margin:10px 0 0;max-width:760px;color:rgba(255,235,235,.85);line-height:1.8}
+  .admin-alert-count{min-width:110px;padding:14px 16px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);text-align:center}
+  .admin-alert-count span{display:block;font-size:2rem;font-weight:800;color:#fff;line-height:1}
+  .admin-alert-count small{display:block;margin-top:6px;color:rgba(255,235,235,.85);font-weight:600}
+  .admin-alert-list{display:grid;gap:14px}
+  .admin-alert-item{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;border-radius:20px;padding:18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+  .admin-alert-item-main{min-width:0;flex:1}
+  .admin-alert-badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+  .mini-badge{display:inline-flex;align-items:center;justify-content:center;padding:6px 10px;border-radius:999px;font-size:.78rem;font-weight:800}
+  .mini-badge-danger{background:#ef4444;color:#fff}
+  .mini-badge-gold{background:rgba(200,169,107,.14);color:#f5dfb1;border:1px solid rgba(200,169,107,.18)}
+  .admin-alert-item h3{margin:0;color:#fff;font-size:1.1rem}
+  .admin-alert-meta{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px 18px;margin-top:12px;color:rgba(255,235,235,.88);line-height:1.7}
+  .admin-alert-meta span{display:flex;align-items:flex-start;gap:8px}
+  .btn-danger-soft,.btn-outline-light{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;text-decoration:none;font-weight:700}
+  .btn-danger-soft{background:#ef4444;color:#fff}
+  .btn-outline-light{background:rgba(255,255,255,.05);color:var(--text);border:1px solid rgba(255,255,255,.10)}
+  .month-filter-form{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .month-filter-form input[type="month"]{min-height:46px;padding:0 12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text)}
+  .stats-premium{display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:18px}
+  .stats-premium-super{grid-template-columns:repeat(3, minmax(0, 1fr))}
+  .stat-premium-card{position:relative;overflow:hidden;border-radius:26px;padding:28px;background:linear-gradient(180deg, rgba(18,51,40,.96), rgba(12,37,29,.96));border:1px solid rgba(255,255,255,.08);box-shadow:var(--shadow-lg);min-height:170px;display:flex;flex-direction:column;justify-content:space-between}
+  .stat-premium-card::after{content:"";position:absolute;right:-20px;bottom:-20px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle, rgba(15,90,67,.22), transparent 70%)}
+  .stat-icon{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;background:rgba(200,169,107,.10);border:1px solid rgba(200,169,107,.16);color:var(--gold);font-size:1.2rem;margin-bottom:18px}
+  .stat-copy span{display:block;color:var(--muted);font-weight:600;margin-bottom:8px}
+  .stat-copy strong{display:block;color:var(--text);font-size:2.1rem;line-height:1.1;margin-bottom:10px;font-weight:800;word-break:break-word}
+  .stat-copy small{color:var(--muted-2);font-size:.95rem}
+  .analytics-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .analytics-card,.dashboard-table-card{padding:28px}
+  .dashboard-section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px}
+  .dashboard-section-head h2{margin:0;font-size:2rem}
+  .dashboard-section-head p{margin:10px 0 0;color:var(--muted-2);line-height:1.8}
+  .summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .summary-mini{padding:18px;border-radius:18px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
+  .summary-mini span{display:block;color:var(--muted);margin-bottom:8px}
+  .summary-mini strong{font-size:2rem}
+  .confirmed strong{color:#86efac}
+  .checkedin strong{color:#93c5fd}
+  .checkedout strong{color:#fde68a}
+  .cancelled strong{color:#fca5a5}
+  .top-room-list,.income-day-list{display:grid;gap:12px}
+  .top-room-item,.income-day-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:18px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08)}
+  .top-room-item small,.muted-text{color:var(--muted)}
+  .dashboard-table{width:100%;border-collapse:separate;border-spacing:0;min-width:980px;border-radius:20px;overflow:hidden;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06)}
+  .dashboard-table thead th{background:rgba(255,255,255,.07);color:#f2e8d0;padding:16px 14px;text-align:left;font-size:.95rem;font-weight:700;border-bottom:1px solid rgba(255,255,255,.08)}
+  .dashboard-table tbody td{padding:16px 14px;border-bottom:1px solid rgba(255,255,255,.06);color:var(--text);vertical-align:middle}
+  .dashboard-table tbody tr:hover{background:rgba(255,255,255,.03)}
+  .dashboard-table tbody tr:last-child td{border-bottom:none}
+  .guest-name{font-weight:700;color:var(--text)}
+  .status-badge{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;font-size:.86rem;font-weight:700;border:1px solid rgba(255,255,255,.08);white-space:nowrap}
+  .status-confirmed{background:rgba(34,197,94,.14);color:#dcfce7}
+  .status-checked-in{background:rgba(59,130,246,.14);color:#dbeafe}
+  .status-checked-out{background:rgba(245,158,11,.14);color:#fef3c7}
+  .status-cancelled{background:rgba(239,68,68,.14);color:#fee2e2}
+  .empty-admin-state{text-align:center;padding:42px 20px 24px;border:1px dashed rgba(255,255,255,.12);border-radius:22px;background:rgba(255,255,255,.02)}
+  .empty-admin-icon{width:76px;height:76px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;background:rgba(200,169,107,.12);border:1px solid rgba(200,169,107,.18);color:var(--gold);font-size:1.8rem}
+  .empty-admin-state h3{margin:0 0 10px;font-size:1.5rem}
+  .empty-admin-state p{margin:0 auto;max-width:520px;color:var(--muted);line-height:1.8}
+  @media (max-width:1200px){
+    .stats-premium-super,.analytics-grid{grid-template-columns:1fr}
+  }
+  @media (max-width:900px){
+    .admin-alert-meta,.stats-premium,.summary-grid{grid-template-columns:1fr}
+  }
+  @media (max-width:768px){
+    .dashboard-hero,.analytics-card,.dashboard-table-card,.admin-alert{padding:20px 16px}
+    .dashboard-mobile-cards table,
+    .dashboard-mobile-cards thead,
+    .dashboard-mobile-cards tbody,
+    .dashboard-mobile-cards tr,
+    .dashboard-mobile-cards th,
+    .dashboard-mobile-cards td{display:block;width:100%}
+    .dashboard-mobile-cards table{min-width:100%;background:transparent;border:none}
+    .dashboard-mobile-cards thead{display:none}
+    .dashboard-mobile-cards tbody{display:grid;gap:14px}
+    .dashboard-mobile-cards tr{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:12px}
+    .dashboard-mobile-cards td{border:none;padding:8px 0}
+    .dashboard-mobile-cards td::before{content:attr(data-label);display:block;font-size:.9rem;font-weight:700;color:#f2e8d0;margin-bottom:4px}
+  }
+</style>
+{% endblock %}
