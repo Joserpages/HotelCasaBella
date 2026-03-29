@@ -923,4 +923,197 @@ body {
 
 .brand img:hover{
   transform: scale(1.05);
+}.extra-box-inner{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  padding-right:18px;
+}
+
+.extra-copy{
+  flex:1;
+  min-width:0;
+  max-width:none;
+}
+
+.extra-toggle{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  flex-shrink:0;
+  margin-right:6px;
+}
+
+.extra-switch{
+  width:104px;
+  height:54px;
+  border-radius:999px;
+  background:linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.07));
+  border:1px solid rgba(255,255,255,.18);
+  position:relative;
+  transition:.28s ease;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.03),
+    0 10px 24px rgba(0,0,0,.24);
+}
+
+.extra-switch::before{
+  content:"OFF";
+  position:absolute;
+  right:16px;
+  top:50%;
+  transform:translateY(-50%);
+  color:rgba(255,255,255,.92);
+  font-size:.8rem;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-shadow:0 1px 6px rgba(0,0,0,.25);
+}
+
+.extra-switch::after{
+  content:"";
+  width:40px;
+  height:40px;
+  border-radius:50%;
+  background:linear-gradient(180deg, #ffffff, #f1f5f9);
+  position:absolute;
+  top:6px;
+  left:7px;
+  transition:.28s ease;
+  box-shadow:
+    0 10px 18px rgba(0,0,0,.24),
+    inset 0 1px 1px rgba(255,255,255,.65);
+}
+
+.extra-toggle input:checked + .extra-switch{
+  background:linear-gradient(135deg, #22c55e, #0f766e);
+  border-color:rgba(255,255,255,.24);
+  box-shadow:0 14px 30px rgba(34,197,94,.30);
+}
+
+.extra-toggle input:checked + .extra-switch::before{
+  content:"ON";
+  left:18px;
+  right:auto;
+  color:#ffffff;
+}
+
+.extra-toggle input:checked + .extra-switch::after{
+  left:57px;
+}
+
+@media (max-width: 768px){
+  .extra-box-inner{
+    flex-direction:column;
+    align-items:flex-start;
+    padding-right:0;
+  }
+
+  .extra-toggle{
+    margin-right:0;
+  }
+}.extra-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 14px;
+  border-radius:999px;
+  background:linear-gradient(135deg, rgba(34,197,94,.24), rgba(15,118,110,.22));
+  color:#f0fdf4;
+  border:1px solid rgba(255,255,255,.18);
+  font-size:.78rem;
+  font-weight:900;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  box-shadow:0 8px 18px rgba(34,197,94,.18);
+}
+.extra-box-inner{
+  display:grid;
+  grid-template-columns:minmax(0, 1fr) 170px;
+  align-items:center;
+  gap:24px;
+}
+
+.extra-copy{
+  min-width:0;
+}
+
+.extra-toggle{
+  width:170px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  cursor:pointer;
+  flex-shrink:0;
+}
+
+.extra-switch{
+  width:120px;
+  height:56px;
+  border-radius:999px;
+  background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+  border:1px solid rgba(255,255,255,.18);
+  position:relative;
+  transition:.28s ease;
+  box-shadow:
+    inset 0 0 0 1px rgba(255,255,255,.03),
+    0 10px 24px rgba(0,0,0,.24);
+}
+
+.extra-switch::before{
+  content:"OFF";
+  position:absolute;
+  right:18px;
+  top:50%;
+  transform:translateY(-50%);
+  color:rgba(255,255,255,.95);
+  font-size:.82rem;
+  font-weight:900;
+  letter-spacing:.12em;
+  text-shadow:0 1px 6px rgba(0,0,0,.25);
+}
+
+.extra-switch::after{
+  content:"";
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  background:linear-gradient(180deg, #ffffff, #eef2f7);
+  position:absolute;
+  top:6px;
+  left:7px;
+  transition:.28s ease;
+  box-shadow:0 10px 18px rgba(0,0,0,.24);
+}
+
+.extra-toggle input:checked + .extra-switch{
+  background:linear-gradient(135deg, #22c55e, #0f766e);
+  border-color:rgba(255,255,255,.24);
+  box-shadow:0 14px 30px rgba(34,197,94,.30);
+}
+
+.extra-toggle input:checked + .extra-switch::before{
+  content:"ON";
+  left:20px;
+  right:auto;
+  color:#fff;
+}
+
+.extra-toggle input:checked + .extra-switch::after{
+  left:70px;
+}
+
+@media (max-width: 768px){
+  .extra-box-inner{
+    grid-template-columns:1fr;
+    align-items:flex-start;
+  }
+
+  .extra-toggle{
+    width:100%;
+    justify-content:flex-start;
+  }
 }

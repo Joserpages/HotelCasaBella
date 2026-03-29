@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Hospedados hoy | Admin{% endblock %}
+
+{% block content %}
+<section class="hotel-stay-shell" data-aos="fade-up">
+  <section class="hotel-stay-hero card">
+    <div>
+      <span class="section-kicker">Recepción</span>
+      <h1>Huéspedes hospedados hoy</h1>
+      <p>
+        Control en tiempo real de los huéspedes actualmente hospedados en el hotel,
+        con acceso rápido a habitación, fechas, pagos y check-out.
+      </p>
+    </div>
+
+    <div class="hotel-stay-hero-actions">
+      <a href="{{ url_for('admin_hotel') }}" class="btn btn-outline">
+        <i class="bi bi-arrow-left"></i>
+        Volver a recepción
+      </a>
+      <a href="{{ url_for('admin_reservations') }}" class="btn btn-primary">
+        <i class="bi bi-calendar-check"></i>
+        Ver reservaciones
+      </a>
+    </div>
+  </section>
+
+  <section class="hotel-stay-kpis">
+    <article class="hotel-stay-kpi card">
+      <span>Hospedados hoy</span>
+      <strong>{{ hospedados|length if hospedados else 0 }}</strong>
+    </article>
+
+    <article class="hotel-stay-kpi card">
+      <span>Fecha actual</span>
+      <strong style="font-size:1.55rem;">{{ today }}</strong>
+    </article>
+  </section>
+
+  <section class="card hotel-stay-table-card">
+    <div class="hotel-stay-head">
+      <div>
+        <span class="section-kicker">Panel operativo</span>
+        <h2>Listado de huéspedes activos</h2>
+        <p>
+          Aquí aparece únicamente quien ya hizo check-in y continúa hospedado.
+        </p>
+      </div>
+    </div>
+
+    {% if hospedados and hospedados|length > 0 %}
+      <div class="table-wrap hotel-stay-mobile-cards">
+        <table class="hotel-stay-table">
+          <thead>
+            <tr>
+              <th>Huésped</th>
+              <th>Teléfono</th>
+              <th>Habitación</th>
+              <th>Entrada</th>
+              <th>Salida</th>
+              <th>Huéspedes</th>
+              <th>Pago</th>
+              <th>Estado de pago</th>
+              <th>Método</th>
+              <th>Registrado por</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for h in hospedados %}
+            <tr>
+              <td data-label="Huésped">
+                <div class="cell-strong">{{ h.guest_name }}</div>
+              </td>
+
+              <td data-label="Teléfono">{{ h.phone }}</td>
+
+              <td data-label="Habitación">
+                <div class="cell-strong">{{ h.room_name }}</div>
+                <small class="cell-muted">{{ h.room_category }}</small>
+              </td>
+
+              <td data-label="Entrada">{{ h.check_in }}</td>
+              <td data-label="Salida">{{ h.check_out }}</td>
+              <td data-label="Huéspedes">{{ h.guests }}</td>
+
+              <!-- PAGO -->
+              <td data-label="Pago">
+                <span class="money-badge">
+                  Q {{ '%.2f'|format(h.amount_paid or 0) }}
+                </span>
+              </td>
+
+              <!-- ESTADO DE PAGO -->
+              <td data-label="Estado de pago">
+                {% if (h.amount_pending or 0) > 0 %}
+                  <span class="money-badge pending">
+                    Q {{ '%.2f'|format(h.amount_pending) }}
+                  </span>
+                {% else %}
+                  <span class="money-badge paid">
+                    ✔ Pagado
+                  </span>
+                {% endif %}
+              </td>
+
+              <!-- MÉTODO DE PAGO -->
+              <td data-label="Método">
+                <span class="method-badge">
+                  {% if (h.payment_method or 'cash') == 'cash' %}
+                    💵 Efectivo
+                  {% elif h.payment_method == 'card' %}
+                    💳 Tarjeta
+                  {% elif h.payment_method == 'transfer' %}
+                    🏦 Transferencia
+                  {% else %}
+                    {{ h.payment_method }}
+                  {% endif %}
+                </span>
+              </td>
+
+              <td data-label="Registrado por">{{ h.created_by_name }}</td>
+
+              <td data-label="Acción">
+                <form method="POST" action="{{ url_for('admin_hotel_checkout', checkin_id=h.id) }}">
+                  <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-box-arrow-right"></i>
+                    Check-out
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-stay-box">
+        <div class="empty-stay-icon">
+          <i class="bi bi-house-check"></i>
+        </div>
+        <h3>No hay huéspedes hospedados hoy</h3>
+        <p>
+          Cuando un huésped haga check-in, aparecerá aquí automáticamente.
+        </p>
+      </div>
+    {% endif %}
+  </section>
+</section>
+
+<style>
+  .money-badge{background:rgba(34,197,94,.12);color:#dcfce7}
+  .money-badge.pending{background:rgba(245,158,11,.14);color:#fef3c7}
+  .money-badge.paid{background:rgba(34,197,94,.25);color:#bbf7d0}
+</style>
+{% endblock %}

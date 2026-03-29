@@ -1,0 +1,1053 @@
+{% extends "base.html" %}
+{% block title %}Recepción | Admin{% endblock %}
+
+{% block content %}
+<section class="hotel-admin-shell" data-aos="fade-up">
+  <div class="hotel-admin-top">
+    <div>
+      <span class="hotel-kicker">Recepción</span>
+      <h1 class="hotel-title">Check-in directo</h1>
+      <p class="hotel-subtitle">
+        Registra huéspedes que llegaron sin reservación previa. Este panel crea ingresos directos,
+        no reservaciones.
+      </p>
+    </div>
+
+    <div class="hotel-top-actions">
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline">
+        <i class="bi bi-arrow-left"></i>
+        Volver al panel
+      </a>
+      <a href="{{ url_for('admin_reservations') }}" class="btn btn-outline">
+        <i class="bi bi-journal-text"></i>
+        Reservaciones
+      </a>
+    </div>
+  </div>
+
+  <div class="hotel-kpis">
+    <div class="hotel-kpi card">
+      <span>Check-ins hoy</span>
+      <strong>{{ checkins_today or 0 }}</strong>
+    </div>
+
+    <div class="hotel-kpi card">
+      <span>Salidas hoy</span>
+      <strong>{{ checkouts_today or 0 }}</strong>
+    </div>
+
+    <div class="hotel-kpi card">
+      <span>Habitaciones ocupadas</span>
+      <strong>{{ occupied_rooms or 0 }}</strong>
+    </div>
+
+    <div class="hotel-kpi card">
+      <span>Huéspedes activos</span>
+      <strong>{{ active_checkins|length if active_checkins else 0 }}</strong>
+    </div>
+  </div>
+
+  <div class="hotel-admin-layout">
+    <article class="hotel-main card">
+      <div class="hotel-main-head">
+        <div>
+          <span class="hotel-kicker">Nuevo ingreso</span>
+          <h2>Registrar huésped</h2>
+          <p>
+            Usa este formulario cuando el cliente llegó al hotel sin haber hecho una reservación.
+          </p>
+        </div>
+
+        <div class="hotel-head-badge">
+          <i class="bi bi-person-check"></i>
+          <span>Ingreso inmediato</span>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('admin_hotel_checkin') }}" id="hotelCheckinForm" class="hotel-form">
+        <div class="hotel-grid">
+          <div class="field">
+            <label for="guest_name">Nombre del huésped</label>
+            <div class="input-shell">
+              <i class="bi bi-person"></i>
+              <input
+                type="text"
+                id="guest_name"
+                name="guest_name"
+                placeholder="Ej. Juan Pérez López"
+                required
+                value="{{ request.form.get('guest_name', '') }}"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="phone">Teléfono</label>
+            <div class="input-shell">
+              <i class="bi bi-telephone"></i>
+              <input
+                type="text"
+                id="phone"
+                name="phone"
+                placeholder="+502 0000-0000"
+                required
+                value="{{ request.form.get('phone', '') }}"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="guests">Número de huéspedes</label>
+            <div class="input-shell">
+              <i class="bi bi-people"></i>
+              <input
+                type="number"
+                id="guests"
+                name="guests"
+                min="1"
+                required
+                value="{{ request.form.get('guests', 1) }}"
+              >
+            </div>
+            <small class="field-note" id="capacityHint"></small>
+          </div>
+
+          <div class="field">
+            <label for="categoryFilter">Categoría</label>
+            <div class="select-shell">
+              <i class="bi bi-stars"></i>
+              <select id="categoryFilter">
+                <option value="">Todas las categorías</option>
+                {% for category in categories %}
+                  <option value="{{ category }}">{{ category }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="check_in">Fecha de ingreso</label>
+            <div class="input-shell">
+              <i class="bi bi-calendar-event"></i>
+              <input
+                type="date"
+                id="check_in"
+                name="check_in"
+                min="{{ today }}"
+                required
+                value="{{ request.form.get('check_in', today) }}"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="check_out">Fecha de salida</label>
+            <div class="input-shell">
+              <i class="bi bi-calendar-check"></i>
+              <input
+                type="date"
+                id="check_out"
+                name="check_out"
+                min="{{ today }}"
+                required
+                value="{{ request.form.get('check_out', '') }}"
+              >
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <label for="roomSelect">Habitación</label>
+            <div class="select-shell">
+              <i class="bi bi-door-open"></i>
+              <select name="room_id" id="roomSelect" required>
+                <option value="">Selecciona una habitación</option>
+                {% for room in rooms_meta %}
+                  <option
+                    value="{{ room.id }}"
+                    data-category="{{ room.category }}"
+                    data-price="{{ room.price }}"
+                    data-capacity="{{ room.capacity }}"
+                    data-extra-allowed="{{ '1' if room.extraAllowed else '0' }}"
+                    {% if request.form.get('room_id') == room.id|string %}selected{% endif %}
+                  >
+                    {{ room.name }} — {{ room.category }} — Q{{ "%.2f"|format(room.price) }} — Capacidad {{ room.capacity }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <small class="field-note">Se filtrarán según la categoría elegida.</small>
+          </div>
+
+          <div class="field">
+            <label for="payment_method">Método de pago</label>
+            <div class="select-shell">
+              <i class="bi bi-credit-card"></i>
+              <select id="payment_method" name="payment_method" required>
+                <option value="cash" {% if request.form.get('payment_method', 'cash') == 'cash' %}selected{% endif %}>Efectivo</option>
+                <option value="card" {% if request.form.get('payment_method') == 'card' %}selected{% endif %}>Tarjeta</option>
+                <option value="transfer" {% if request.form.get('payment_method') == 'transfer' %}selected{% endif %}>Transferencia</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field field-full" id="extraPersonWrap" style="display:none;">
+            <div class="extra-card">
+              <div class="extra-topline">
+                <label class="extra-title" for="extraPersonCheck">Persona extra</label>
+                <span class="extra-badge">Opcional</span>
+              </div>
+
+              <div class="extra-box-inner">
+                <div class="extra-copy">
+                  <strong>Agregar persona extra</strong>
+                  <p>
+                    Úsalo únicamente en habitaciones que lo permitan.
+                  </p>
+                </div>
+
+                <label class="extra-toggle" for="extraPersonCheck">
+                  <input
+                    type="checkbox"
+                    id="extraPersonCheck"
+                    {% if request.form.get('extra_person') == '1' %}checked{% endif %}
+                  >
+                  <span class="extra-switch"></span>
+                </label>
+              </div>
+
+              <div class="extra-price-wrap">
+                <div class="extra-price">
+                  <i class="bi bi-plus-circle"></i>
+                  +Q<span id="extraFeeTxt">{{ "%.2f"|format(extra_fee) }}</span> por noche
+                </div>
+                <small class="extra-mini-note">Este cargo se suma al total estimado.</small>
+              </div>
+
+              <input
+                type="hidden"
+                name="extra_person"
+                id="extraPersonInput"
+                value="{{ request.form.get('extra_person', '0') }}"
+              >
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <label for="special_requests">Observaciones</label>
+            <div class="textarea-shell">
+              <i class="bi bi-chat-left-text"></i>
+              <textarea
+                id="special_requests"
+                name="special_requests"
+                rows="4"
+                placeholder="Ej. pago en recepción, solicitud especial, etc."
+              >{{ request.form.get('special_requests', '') }}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="hotel-summary">
+          <div class="hotel-summary-head">
+            <div>
+              <span class="hotel-kicker">Resumen</span>
+              <h3>Total estimado</h3>
+            </div>
+            <div class="hotel-summary-icon">
+              <i class="bi bi-receipt"></i>
+            </div>
+          </div>
+
+          <div class="hotel-summary-grid">
+            <div class="hotel-summary-item">
+              <span>Noches</span>
+              <strong id="sumNights">0</strong>
+            </div>
+            <div class="hotel-summary-item">
+              <span>Tarifa por noche</span>
+              <strong>Q<span id="sumPrice">0.00</span></strong>
+            </div>
+            <div class="hotel-summary-item">
+              <span>Extra</span>
+              <strong>Q<span id="sumExtra">0.00</span></strong>
+            </div>
+            <div class="hotel-summary-item hotel-summary-total">
+              <span>Total estimado</span>
+              <strong>Q<span id="sumTotal">0.00</span></strong>
+            </div>
+          </div>
+
+          <div class="paid-info-box" style="margin-top:18px;">
+            <div class="paid-info-icon">
+              <i class="bi bi-patch-check-fill"></i>
+            </div>
+            <div>
+              <strong>Pago completo al registrar</strong>
+              <p>
+                Este ingreso se guardará automáticamente como pagado en su totalidad. No se registrará saldo pendiente.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="hotel-actions">
+          <button type="reset" class="btn btn-outline" id="resetBtn">
+            <i class="bi bi-arrow-counterclockwise"></i>
+            Limpiar
+          </button>
+
+          <button type="submit" class="btn btn-primary hotel-submit">
+            <i class="bi bi-check2-circle"></i>
+            Registrar ingreso
+          </button>
+        </div>
+      </form>
+    </article>
+
+    <aside class="hotel-side card">
+      <div class="hotel-side-block">
+        <span class="hotel-kicker">Hospedados</span>
+        <h3>Huéspedes activos</h3>
+        <p class="hotel-side-text">
+          Aquí se muestran únicamente los huéspedes ingresados directamente desde recepción.
+        </p>
+      </div>
+
+      {% if active_checkins %}
+        <div class="hotel-recent-list">
+          {% for r in active_checkins %}
+            <div class="hotel-recent-item">
+              <div class="hotel-recent-top">
+                <strong>{{ r.guest_name }}</strong>
+                <span class="hotel-status hotel-status-checked_in">Hospedado</span>
+              </div>
+
+              <div class="hotel-recent-room">
+                <i class="bi bi-door-open"></i>
+                <span>{{ r.room_name }}</span>
+              </div>
+
+              <div class="hotel-recent-dates">
+                <i class="bi bi-calendar3"></i>
+                <span>{{ r.check_in }} → {{ r.check_out }}</span>
+              </div>
+
+              <div class="hotel-recent-user">
+                <i class="bi bi-person-badge"></i>
+                <span>Registrado por: {{ r.created_by_name }}</span>
+              </div>
+
+              <form method="POST" action="{{ url_for('admin_hotel_checkout', checkin_id=r.id) }}" style="margin-top:14px;">
+                <button type="submit" class="btn btn-outline" style="width:100%; justify-content:center;">
+                  <i class="bi bi-box-arrow-right"></i>
+                  Realizar check-out
+                </button>
+              </form>
+            </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="hotel-empty">
+          <i class="bi bi-house-check"></i>
+          <p>No hay huéspedes activos en este momento.</p>
+        </div>
+      {% endif %}
+    </aside>
+  </div>
+</section>
+
+<style>
+  .hotel-admin-shell{
+    max-width:1240px;
+    margin:0 auto;
+    padding:32px 0 18px;
+  }
+
+  .hotel-admin-top{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+    margin-bottom:24px;
+    flex-wrap:wrap;
+  }
+
+  .hotel-kicker{
+    display:inline-block;
+    font-size:.82rem;
+    text-transform:uppercase;
+    letter-spacing:.18em;
+    color:var(--gold);
+    margin-bottom:10px;
+    font-weight:800;
+  }
+
+  .hotel-title{
+    margin:0;
+    font-size:clamp(2rem,4vw,3rem);
+    line-height:1.05;
+  }
+
+  .hotel-subtitle{
+    margin:10px 0 0;
+    color:var(--muted-2);
+    line-height:1.8;
+    max-width:760px;
+  }
+
+  .hotel-top-actions{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+
+  .hotel-kpis{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:16px;
+    margin-bottom:24px;
+  }
+
+  .hotel-kpi{
+    padding:22px;
+    border-radius:24px;
+    min-height:122px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+  }
+
+  .hotel-kpi span{
+    display:block;
+    color:rgba(255,255,255,.72);
+    font-size:1rem;
+    margin-bottom:10px;
+  }
+
+  .hotel-kpi strong{
+    display:block;
+    margin-top:8px;
+    font-size:2.45rem;
+    line-height:1;
+    font-weight:800;
+    color:#f8f5ef;
+  }
+
+  .hotel-admin-layout{
+    display:grid;
+    grid-template-columns:minmax(0,1.35fr) 360px;
+    gap:22px;
+    align-items:start;
+  }
+
+  .hotel-main{
+    padding:32px;
+  }
+
+  .hotel-side{
+    padding:26px;
+    position:sticky;
+    top:112px;
+  }
+
+  .hotel-main-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:18px;
+    flex-wrap:wrap;
+    margin-bottom:28px;
+  }
+
+  .hotel-main-head h2{
+    margin:0 0 10px;
+    font-size:2rem;
+    line-height:1.1;
+  }
+
+  .hotel-main-head p{
+    margin:0;
+    color:var(--muted);
+    line-height:1.8;
+    max-width:740px;
+  }
+
+  .hotel-head-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    padding:12px 16px;
+    border-radius:999px;
+    background:rgba(200,169,107,.10);
+    border:1px solid rgba(200,169,107,.18);
+    color:#f3dfb9;
+    font-weight:700;
+    white-space:nowrap;
+  }
+
+  .hotel-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:18px;
+  }
+
+  .field{min-width:0}
+  .field-full{grid-column:1 / -1}
+
+  .field label,.extra-title{
+    display:block;
+    margin-bottom:9px;
+    color:var(--text);
+    font-weight:700;
+    font-size:1rem;
+  }
+
+  .field-note{
+    display:block;
+    margin-top:8px;
+    color:var(--muted-2);
+    line-height:1.6;
+    font-size:.92rem;
+  }
+
+  .input-shell,.select-shell,.textarea-shell{
+    position:relative;
+  }
+
+  .input-shell i,.select-shell i,.textarea-shell i{
+    position:absolute;
+    left:16px;
+    top:18px;
+    color:rgba(247,244,238,.62);
+    font-size:1rem;
+    pointer-events:none;
+  }
+
+  .input-shell input,.select-shell select{
+    padding-left:46px;
+  }
+
+  .textarea-shell textarea{
+    padding-left:46px;
+    padding-top:15px;
+  }
+
+  .paid-info-box{
+    display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:20px;
+    background:linear-gradient(135deg, rgba(34,197,94,.16), rgba(16,185,129,.08));
+    border:1px solid rgba(34,197,94,.22);
+  }
+  .paid-info-icon{
+    width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    background:rgba(34,197,94,.16);color:#86efac;font-size:1.2rem;flex-shrink:0;
+  }
+  .paid-info-box strong{display:block;margin-bottom:6px}
+  .paid-info-box p{margin:0;color:var(--muted);line-height:1.7}
+
+  .extra-card{
+    padding:18px;
+    border-radius:24px;
+    background:radial-gradient(circle at top right, rgba(34,197,94,.18), transparent 35%), linear-gradient(180deg, rgba(200,169,107,.10), rgba(200,169,107,.04));
+    border:1px solid rgba(200,169,107,.24);
+    box-shadow:0 16px 34px rgba(0,0,0,.14);
+    position:relative;
+    overflow:hidden;
+  }
+
+  .extra-topline{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:12px;
+  }
+
+  .extra-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px 14px;
+    border-radius:999px;
+    background:linear-gradient(135deg, rgba(34,197,94,.24), rgba(15,118,110,.22));
+    color:#f0fdf4;
+    border:1px solid rgba(255,255,255,.18);
+    font-size:.78rem;
+    font-weight:900;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+  }
+
+  .extra-box-inner{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) 170px;
+    align-items:center;
+    gap:24px;
+  }
+
+  .extra-copy strong{
+    display:block;
+    color:var(--text);
+    margin-bottom:6px;
+    font-size:1.08rem;
+  }
+
+  .extra-copy p{
+    margin:0;
+    color:var(--muted);
+    line-height:1.7;
+    font-size:.95rem;
+  }
+
+  .extra-price-wrap{
+    margin-top:14px;
+    display:grid;
+    gap:6px;
+  }
+
+  .extra-price{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    width:max-content;
+    padding:10px 14px;
+    border-radius:14px;
+    background:rgba(0,0,0,.18);
+    border:1px solid rgba(255,255,255,.08);
+    color:#f3dfb9;
+    font-weight:800;
+    font-size:.96rem;
+  }
+
+  .extra-mini-note{
+    color:var(--muted-2);
+    line-height:1.6;
+  }
+
+  .extra-toggle{
+    width:170px;
+    display:flex;
+    align-items:center;
+    justify-content:flex-end;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+
+  .extra-toggle input{
+    position:absolute;
+    opacity:0;
+    pointer-events:none;
+  }
+
+  .extra-switch{
+    width:120px;
+    height:56px;
+    border-radius:999px;
+    background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+    border:1px solid rgba(255,255,255,.18);
+    position:relative;
+    transition:.28s ease;
+  }
+
+  .extra-switch::before{
+    content:"OFF";
+    position:absolute;
+    right:18px;
+    top:50%;
+    transform:translateY(-50%);
+    color:rgba(255,255,255,.95);
+    font-size:.82rem;
+    font-weight:900;
+    letter-spacing:.12em;
+  }
+
+  .extra-switch::after{
+    content:"";
+    width:42px;
+    height:42px;
+    border-radius:50%;
+    background:linear-gradient(180deg, #ffffff, #eef2f7);
+    position:absolute;
+    top:6px;
+    left:7px;
+    transition:.28s ease;
+  }
+
+  .extra-toggle input:checked + .extra-switch{
+    background:linear-gradient(135deg, #22c55e, #0f766e);
+  }
+
+  .extra-toggle input:checked + .extra-switch::before{
+    content:"ON";
+    left:20px;
+    right:auto;
+    color:#fff;
+  }
+
+  .extra-toggle input:checked + .extra-switch::after{
+    left:70px;
+  }
+
+  .hotel-summary{
+    margin-top:22px;
+    padding:22px;
+    border-radius:26px;
+    background:radial-gradient(circle at top right, rgba(200,169,107,.16), transparent 35%), linear-gradient(135deg, #0f172a, #111827 55%, #1e293b);
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 20px 50px rgba(0,0,0,.22);
+  }
+
+  .hotel-summary-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:18px;
+  }
+
+  .hotel-summary-head h3{
+    margin:0;
+    font-size:1.45rem;
+    color:#fff;
+  }
+
+  .hotel-summary-icon{
+    width:54px;
+    height:54px;
+    border-radius:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(255,255,255,.08);
+    color:var(--gold);
+    font-size:1.2rem;
+  }
+
+  .hotel-summary-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:14px;
+  }
+
+  .hotel-summary-item{
+    padding:14px 16px;
+    border-radius:18px;
+    background:rgba(255,255,255,.05);
+    border:1px solid rgba(255,255,255,.07);
+  }
+
+  .hotel-summary-item span{
+    display:block;
+    color:rgba(255,255,255,.72);
+    font-size:.9rem;
+    margin-bottom:6px;
+  }
+
+  .hotel-summary-item strong{
+    font-size:1.2rem;
+    color:#fff;
+  }
+
+  .hotel-summary-total{
+    background:linear-gradient(135deg, rgba(200,169,107,.22), rgba(200,169,107,.10));
+    border:1px solid rgba(200,169,107,.24);
+  }
+
+  .hotel-actions{
+    display:flex;
+    justify-content:flex-end;
+    gap:12px;
+    flex-wrap:wrap;
+    margin-top:24px;
+  }
+
+  .hotel-submit{
+    min-width:220px;
+  }
+
+  .hotel-side-block h3{
+    margin:0 0 10px;
+    font-size:1.8rem;
+    line-height:1.1;
+  }
+
+  .hotel-side-text{
+    margin:0;
+    color:var(--muted);
+    line-height:1.8;
+  }
+
+  .hotel-recent-list{
+    display:grid;
+    gap:14px;
+    margin-top:22px;
+  }
+
+  .hotel-recent-item{
+    padding:16px;
+    border-radius:20px;
+    background:rgba(255,255,255,.03);
+    border:1px solid rgba(255,255,255,.07);
+    box-shadow:0 12px 30px rgba(0,0,0,.10);
+  }
+
+  .hotel-recent-top{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+    margin-bottom:12px;
+    flex-wrap:wrap;
+  }
+
+  .hotel-status{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:7px 12px;
+    border-radius:999px;
+    font-size:.78rem;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+
+  .hotel-status-checked_in{
+    background:rgba(34,197,94,.12);
+    color:#bbf7d0;
+    border:1px solid rgba(34,197,94,.24);
+  }
+
+  .hotel-recent-room,.hotel-recent-dates,.hotel-recent-user{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    color:var(--muted);
+    line-height:1.7;
+    font-size:.94rem;
+    margin-top:8px;
+  }
+
+  .hotel-recent-room i,.hotel-recent-dates i,.hotel-recent-user i{
+    color:var(--gold);
+    margin-top:2px;
+  }
+
+  .hotel-empty{
+    margin-top:22px;
+    min-height:220px;
+    display:grid;
+    place-items:center;
+    text-align:center;
+    border-radius:24px;
+    background:rgba(255,255,255,.03);
+    border:1px dashed rgba(255,255,255,.10);
+    color:var(--muted);
+    padding:24px;
+  }
+
+  .hotel-empty i{
+    font-size:2rem;
+    color:var(--gold);
+    display:block;
+    margin-bottom:10px;
+  }
+
+  input[type="date"]{
+    color-scheme:dark;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator{
+    filter:invert(1);
+    opacity:.9;
+    cursor:pointer;
+  }
+
+  input[type="date"]::-webkit-datetime-edit,
+  input[type="date"]::-webkit-datetime-edit-text,
+  input[type="date"]::-webkit-datetime-edit-month-field,
+  input[type="date"]::-webkit-datetime-edit-day-field,
+  input[type="date"]::-webkit-datetime-edit-year-field{
+    color:var(--text);
+  }
+
+  @media (max-width:1080px){
+    .hotel-kpis{
+      grid-template-columns:repeat(2,minmax(0,1fr));
+    }
+
+    .hotel-admin-layout{
+      grid-template-columns:1fr;
+    }
+
+    .hotel-side{
+      position:static;
+    }
+  }
+
+  @media (max-width:768px){
+    .hotel-admin-shell{
+      padding:20px 0 14px;
+    }
+
+    .hotel-kpis{
+      grid-template-columns:1fr;
+    }
+
+    .hotel-main,.hotel-side{
+      padding:20px 16px;
+    }
+
+    .hotel-grid{
+      grid-template-columns:1fr;
+      gap:16px;
+    }
+
+    .hotel-actions{
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    .hotel-actions .btn,.hotel-top-actions .btn{
+      width:100%;
+      justify-content:center;
+    }
+
+    .hotel-summary-grid{
+      grid-template-columns:1fr;
+    }
+
+    .extra-box-inner{
+      grid-template-columns:1fr;
+    }
+
+    .extra-toggle{
+      width:100%;
+      justify-content:flex-start;
+    }
+  }
+</style>
+
+<script>
+  const categoryFilter = document.getElementById("categoryFilter");
+  const roomSelect = document.getElementById("roomSelect");
+  const checkIn = document.getElementById("check_in");
+  const checkOut = document.getElementById("check_out");
+  const extraPersonWrap = document.getElementById("extraPersonWrap");
+  const extraPersonCheck = document.getElementById("extraPersonCheck");
+  const extraPersonInput = document.getElementById("extraPersonInput");
+  const capacityHint = document.getElementById("capacityHint");
+
+  const sumNights = document.getElementById("sumNights");
+  const sumPrice = document.getElementById("sumPrice");
+  const sumExtra = document.getElementById("sumExtra");
+  const sumTotal = document.getElementById("sumTotal");
+
+  const EXTRA_FEE = {{ extra_fee|tojson }};
+
+  function getSelectedOption() {
+    return roomSelect.options[roomSelect.selectedIndex];
+  }
+
+  function filterRooms() {
+    const selectedCategory = categoryFilter.value;
+
+    [...roomSelect.options].forEach((opt, i) => {
+      if (i === 0) return;
+      const category = opt.dataset.category || "";
+      opt.hidden = selectedCategory && category !== selectedCategory;
+    });
+
+    const selectedOption = getSelectedOption();
+    if (selectedOption && selectedOption.hidden) {
+      roomSelect.value = "";
+    }
+
+    updateSummary();
+  }
+
+  function updateExtraVisibility() {
+    const selectedOption = getSelectedOption();
+
+    if (!selectedOption || !selectedOption.value) {
+      extraPersonWrap.style.display = "none";
+      capacityHint.textContent = "";
+      if (extraPersonCheck) {
+        extraPersonCheck.checked = false;
+        extraPersonInput.value = "0";
+      }
+      return;
+    }
+
+    const extraAllowed = selectedOption.dataset.extraAllowed === "1";
+    const cap = Number(selectedOption.dataset.capacity || 0);
+
+    capacityHint.textContent = extraAllowed
+      ? `Capacidad base: ${cap}. Con persona extra: ${cap + 1}.`
+      : `Capacidad máxima: ${cap}.`;
+
+    extraPersonWrap.style.display = extraAllowed ? "block" : "none";
+
+    if (!extraAllowed && extraPersonCheck) {
+      extraPersonCheck.checked = false;
+      extraPersonInput.value = "0";
+    }
+  }
+
+  function calcNights() {
+    if (!checkIn.value || !checkOut.value) return 0;
+    const inDate = new Date(checkIn.value + "T00:00:00");
+    const outDate = new Date(checkOut.value + "T00:00:00");
+    const diff = Math.round((outDate - inDate) / (1000 * 60 * 60 * 24));
+    return diff > 0 ? diff : 0;
+  }
+
+  function updateSummary() {
+    updateExtraVisibility();
+
+    const selectedOption = getSelectedOption();
+    const nights = calcNights();
+    const price = selectedOption && selectedOption.value
+      ? Number(selectedOption.dataset.price || 0)
+      : 0;
+
+    const extra = (extraPersonCheck && extraPersonCheck.checked) ? (EXTRA_FEE * nights) : 0;
+    const total = (price * nights) + extra;
+
+    sumNights.textContent = nights;
+    sumPrice.textContent = price.toFixed(2);
+    sumExtra.textContent = extra.toFixed(2);
+    sumTotal.textContent = total.toFixed(2);
+
+    if (extraPersonInput) {
+      extraPersonInput.value = (extraPersonCheck && extraPersonCheck.checked) ? "1" : "0";
+    }
+  }
+
+  categoryFilter.addEventListener("change", filterRooms);
+  roomSelect.addEventListener("change", updateSummary);
+  checkIn.addEventListener("change", updateSummary);
+  checkOut.addEventListener("change", updateSummary);
+  if (extraPersonCheck) extraPersonCheck.addEventListener("change", updateSummary);
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    setTimeout(() => {
+      categoryFilter.value = "";
+      [...roomSelect.options].forEach((opt, i) => {
+        if (i === 0) {
+          opt.hidden = false;
+          return;
+        }
+        opt.hidden = false;
+      });
+      roomSelect.value = "";
+      if (extraPersonCheck) extraPersonCheck.checked = false;
+      if (extraPersonInput) extraPersonInput.value = "0";
+      extraPersonWrap.style.display = "none";
+      capacityHint.textContent = "";
+      updateSummary();
+    }, 0);
+  });
+
+  filterRooms();
+  updateSummary();
+</script>
+{% endblock %}

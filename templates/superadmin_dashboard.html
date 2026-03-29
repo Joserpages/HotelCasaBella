@@ -142,19 +142,19 @@
       <div class="summary-grid">
         <div class="summary-mini confirmed">
           <span>Confirmadas</span>
-          <strong>{{ status_counter.confirmed }}</strong>
+          <strong>{{ status_counter.get('confirmed', 0) }}</strong>
         </div>
         <div class="summary-mini checkedin">
           <span>Check-in</span>
-          <strong>{{ status_counter.checked_in }}</strong>
+          <strong>{{ status_counter.get('checked_in', 0) }}</strong>
         </div>
         <div class="summary-mini checkedout">
           <span>Check-out</span>
-          <strong>{{ status_counter.checked_out }}</strong>
+          <strong>{{ status_counter.get('checked_out', 0) }}</strong>
         </div>
         <div class="summary-mini cancelled">
           <span>Canceladas</span>
-          <strong>{{ status_counter.cancelled }}</strong>
+          <strong>{{ status_counter.get('cancelled', 0) }}</strong>
         </div>
       </div>
     </article>
@@ -249,7 +249,9 @@
                 {% endif %}
               </span>
             </td>
-            <td data-label="Total">Q{{ '%.2f'|format(reservation_total_for_template(mv)) }}</td>
+            <td data-label="Total">
+              Q{{ '%.2f'|format(reservation_total_for_template(mv)) }}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -320,9 +322,10 @@
   .admin-alert-item h3{margin:0;color:#fff;font-size:1.1rem}
   .admin-alert-meta{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:8px 18px;margin-top:12px;color:rgba(255,235,235,.88);line-height:1.7}
   .admin-alert-meta span{display:flex;align-items:flex-start;gap:8px}
-  .btn-danger-soft,.btn-outline-light{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;text-decoration:none;font-weight:700}
+  .btn-danger-soft,.btn-outline-light,.btn-gold{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;text-decoration:none;font-weight:700;border:none}
   .btn-danger-soft{background:#ef4444;color:#fff}
   .btn-outline-light{background:rgba(255,255,255,.05);color:var(--text);border:1px solid rgba(255,255,255,.10)}
+  .btn-gold{background:linear-gradient(135deg,#d4af37,#f5d67b);color:#1f1a0a}
   .month-filter-form{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .month-filter-form input[type="month"]{min-height:46px;padding:0 12px;border-radius:14px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);color:var(--text)}
   .stats-premium{display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:18px}

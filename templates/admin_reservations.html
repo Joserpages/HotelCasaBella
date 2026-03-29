@@ -9,7 +9,7 @@
       <span class="section-kicker">Gestión administrativa</span>
       <h1>Reservaciones del hotel</h1>
       <p>
-        Supervisa, filtra y actualiza el estado de las reservaciones desde una vista
+        Supervisa, filtra, busca y convierte reservaciones a check-in desde una vista
         clara, ordenada y profesional para recepción y administración.
       </p>
     </div>
@@ -30,27 +30,60 @@
     </form>
   </section>
 
+  <section class="card admin-search-card">
+    <form method="get" action="{{ url_for('admin_reservations') }}" class="admin-super-search-form">
+      <input type="hidden" name="status" value="{{ selected_status }}">
+
+      <div class="admin-super-search-box">
+        <div class="admin-super-search-icon">
+          <i class="bi bi-search"></i>
+        </div>
+
+        <input
+          type="text"
+          id="reservationLiveSearch"
+          name="q"
+          value="{{ q or '' }}"
+          placeholder="Buscar por huésped, cliente, teléfono, habitación o fechas..."
+          class="admin-super-search-input"
+        >
+
+        {% if q %}
+          <a href="{{ url_for('admin_reservations', status=selected_status) }}" class="btn btn-outline admin-search-clear">
+            <i class="bi bi-x-circle"></i>
+            Limpiar
+          </a>
+        {% endif %}
+
+        <button type="submit" class="btn btn-primary admin-search-btn">
+          <i class="bi bi-search-heart"></i>
+          Buscar
+        </button>
+      </div>
+    </form>
+  </section>
+
   <section class="admin-tabs-wrap">
-    <a href="{{ url_for('admin_reservations', status='active') }}"
+    <a href="{{ url_for('admin_reservations', status='active', q=q) }}"
        class="admin-tab {{ 'active' if selected_status == 'active' else '' }}">
       <i class="bi bi-hourglass-split"></i>
       Pendientes / activas
     </a>
 
-    <a href="{{ url_for('admin_reservations', status='checked_out') }}"
+    <a href="{{ url_for('admin_reservations', status='checked_out', q=q) }}"
        class="admin-tab {{ 'active' if selected_status == 'checked_out' else '' }}">
       <i class="bi bi-box-arrow-right"></i>
       Historial check-out
     </a>
 
-    <a href="{{ url_for('admin_reservations', status='all') }}"
+    <a href="{{ url_for('admin_reservations', status='all', q=q) }}"
        class="admin-tab {{ 'active' if selected_status == 'all' else '' }}">
       <i class="bi bi-collection"></i>
       Todas
     </a>
   </section>
 
-  {% if has_pending_alerts %}
+  {% if has_pending_alerts and not q %}
   <section id="alarmBox" class="admin-alert-lux reminder-active">
     <div class="admin-alert-lux-top">
       <div class="admin-alert-lux-copy">
@@ -87,12 +120,40 @@
           </div>
         </div>
 
-        <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
-          <button type="submit" class="btn btn-danger-soft">
-            <i class="bi bi-bell-slash"></i>
-            Quitar alarma
+        <div class="admin-alert-actions">
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            onclick='openReservationDetail({
+              "id": {{ r.id|tojson }},
+              "user_name": {{ r.user_name|tojson }},
+              "guest_name": {{ r.guest_name|tojson }},
+              "phone": {{ (r.phone or "")|tojson }},
+              "room_name": {{ r.room_name|tojson }},
+              "check_in": {{ r.check_in|tojson }},
+              "check_out": {{ r.check_out|tojson }},
+              "guests": {{ r.guests|tojson }},
+              "status": {{ r.status|tojson }},
+              "special_requests": {{ (r.special_requests or "")|tojson }}
+            })'>
+            <i class="bi bi-eye"></i>
+            Detalle
           </button>
-        </form>
+
+          {% if r.status in ['confirmed', 'checked_in'] %}
+          <a href="{{ url_for('admin_hotel_reservation_to_checkin', reservation_id=r.id) }}" class="btn btn-primary btn-sm">
+            <i class="bi bi-box-arrow-in-right"></i>
+            Ir a check-in
+          </a>
+          {% endif %}
+
+          <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
+            <button type="submit" class="btn btn-danger-soft">
+              <i class="bi bi-bell-slash"></i>
+              Quitar alarma
+            </button>
+          </form>
+        </div>
       </article>
       {% endfor %}
     </div>
@@ -105,7 +166,7 @@
         <span class="section-kicker">Listado operativo</span>
         <h2>Reservaciones registradas</h2>
         <p>
-          Administra estados, revisa huéspedes y controla la operación diaria del hotel.
+          Administra estados, revisa huéspedes y pasa una reservación a check-in cuando el cliente llegue.
         </p>
       </div>
     </div>
@@ -132,13 +193,26 @@
               <th>Salida</th>
               <th>Huéspedes</th>
               <th>Estado</th>
+              <th>Detalle</th>
+              <th>Check-in</th>
               <th>Acción</th>
             </tr>
           </thead>
           <tbody>
             {% for r in reservations %}
             {% set st = (r.status or '')|lower %}
-            <tr class="{{ 'row-new-lux' if r.admin_alert_dismissed == 0 else '' }}">
+            <tr
+  class="{{ 'row-new-lux' if r.admin_alert_dismissed == 0 else '' }}"
+  data-search="{{ (
+    (r.user_name or '') ~ ' ' ~
+    (r.guest_name or '') ~ ' ' ~
+    (r.phone or '') ~ ' ' ~
+    (r.room_name or '') ~ ' ' ~
+    (r.check_in or '') ~ ' ' ~
+    (r.check_out or '') ~ ' ' ~
+    (r.status or '')
+  )|lower }}"
+>
               <td data-label="Cliente">
                 <div class="cell-strong">{{ r.user_name }}</div>
               </td>
@@ -150,6 +224,9 @@
                     <span class="mini-badge mini-badge-danger">Nueva</span>
                   {% endif %}
                 </div>
+                {% if r.phone %}
+                  <small class="cell-muted">{{ r.phone }}</small>
+                {% endif %}
               </td>
 
               <td data-label="Habitación">{{ r.room_name }}</td>
@@ -177,6 +254,39 @@
                 </span>
               </td>
 
+              <td data-label="Detalle">
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm btn-detail"
+                  onclick='openReservationDetail({
+                    "id": {{ r.id|tojson }},
+                    "user_name": {{ r.user_name|tojson }},
+                    "guest_name": {{ r.guest_name|tojson }},
+                    "phone": {{ (r.phone or "")|tojson }},
+                    "room_name": {{ r.room_name|tojson }},
+                    "check_in": {{ r.check_in|tojson }},
+                    "check_out": {{ r.check_out|tojson }},
+                    "guests": {{ r.guests|tojson }},
+                    "status": {{ r.status|tojson }},
+                    "special_requests": {{ (r.special_requests or "")|tojson }}
+                  })'>
+                  <i class="bi bi-eye"></i>
+                  Detalle
+                </button>
+              </td>
+
+              <td data-label="Check-in">
+                {% if r.status in ['confirmed', 'checked_in'] %}
+                  <a href="{{ url_for('admin_hotel_reservation_to_checkin', reservation_id=r.id) }}"
+                     class="btn btn-primary btn-sm btn-checkin">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Ir a check-in
+                  </a>
+                {% else %}
+                  <span class="muted-inline">No disponible</span>
+                {% endif %}
+              </td>
+
               <td data-label="Acción">
                 <form method="post"
                       action="{{ url_for('admin_update_reservation_status', reservation_id=r.id) }}"
@@ -201,6 +311,78 @@
     {% endif %}
   </section>
 </section>
+
+<div class="reservation-modal" id="reservationDetailModal" aria-hidden="true">
+  <div class="reservation-modal-backdrop" onclick="closeReservationDetail()"></div>
+
+  <div class="reservation-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="reservationDetailTitle">
+    <div class="reservation-modal-head">
+      <div>
+        <span class="section-kicker">Detalle de reservación</span>
+        <h3 id="reservationDetailTitle">Información del cliente</h3>
+      </div>
+
+      <button type="button" class="modal-close-btn" onclick="closeReservationDetail()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="reservation-modal-body">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Cliente</span>
+          <strong id="detailUserName">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Huésped</span>
+          <strong id="detailGuestName">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Teléfono</span>
+          <strong id="detailPhone">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Habitación</span>
+          <strong id="detailRoomName">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Entrada</span>
+          <strong id="detailCheckIn">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Salida</span>
+          <strong id="detailCheckOut">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Huéspedes</span>
+          <strong id="detailGuests">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Estado</span>
+          <strong id="detailStatus">—</strong>
+        </div>
+
+        <div class="detail-item detail-item-full">
+          <span class="detail-label">Solicitudes especiales</span>
+          <div class="detail-note" id="detailSpecialRequests">Sin solicitudes especiales.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reservation-modal-actions">
+      <button type="button" class="btn btn-outline" onclick="closeReservationDetail()">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
 
 <style>
   .admin-res-shell{
@@ -261,6 +443,59 @@
   .admin-res-filter-row select{
     flex:1;
     min-width:190px;
+  }
+
+  .admin-search-card{
+    padding:18px;
+  }
+
+  .admin-super-search-form{
+    width:100%;
+  }
+
+  .admin-super-search-box{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    padding:12px;
+    border-radius:24px;
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 18px 36px rgba(0,0,0,.16);
+  }
+
+  .admin-super-search-icon{
+    width:48px;
+    height:48px;
+    border-radius:16px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:rgba(200,169,107,.10);
+    color:var(--gold);
+    font-size:1.1rem;
+    flex-shrink:0;
+  }
+
+  .admin-super-search-input{
+    flex:1;
+    min-width:180px;
+    height:54px;
+    border:none;
+    outline:none;
+    background:transparent;
+    color:var(--text);
+    font-size:1.03rem;
+  }
+
+  .admin-super-search-input::placeholder{
+    color:var(--muted-2);
+  }
+
+  .admin-search-btn,
+  .admin-search-clear{
+    flex-shrink:0;
   }
 
   .admin-tabs-wrap{
@@ -382,6 +617,13 @@
     flex:1;
   }
 
+  .admin-alert-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
   .admin-alert-lux-badges{
     display:flex;
     gap:8px;
@@ -469,7 +711,7 @@
     width:100%;
     border-collapse:separate;
     border-spacing:0;
-    min-width:1100px;
+    min-width:1460px;
     border-radius:20px;
     overflow:hidden;
     background:rgba(255,255,255,.02);
@@ -508,6 +750,12 @@
   .cell-strong{
     font-weight:700;
     color:var(--text);
+  }
+
+  .cell-muted{
+    display:block;
+    margin-top:4px;
+    color:var(--muted-2);
   }
 
   .guest-cell{
@@ -549,6 +797,11 @@
     color:#fee2e2;
   }
 
+  .muted-inline{
+    color:var(--muted-2);
+    font-size:.92rem;
+  }
+
   .admin-inline-form{
     display:flex;
     gap:8px;
@@ -558,6 +811,16 @@
 
   .btn-sm{
     padding:12px 16px;
+  }
+
+  .btn-detail{
+    min-width:110px;
+    justify-content:center;
+  }
+
+  .btn-checkin{
+    min-width:150px;
+    justify-content:center;
   }
 
   .empty-admin-res{
@@ -594,6 +857,120 @@
     line-height:1.8;
   }
 
+  .reservation-modal{
+    position:fixed;
+    inset:0;
+    z-index:1200;
+    display:none;
+  }
+
+  .reservation-modal.show{
+    display:block;
+  }
+
+  .reservation-modal-backdrop{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.6);
+    backdrop-filter:blur(6px);
+  }
+
+  .reservation-modal-dialog{
+    position:relative;
+    z-index:1;
+    width:min(720px, calc(100% - 24px));
+    margin:5vh auto;
+    border-radius:26px;
+    background:linear-gradient(180deg, rgba(18,51,40,.98), rgba(12,37,29,.98));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+    padding:24px;
+    max-height:90vh;
+    overflow:auto;
+  }
+
+  .reservation-modal-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:18px;
+  }
+
+  .reservation-modal-head h3{
+    margin:0;
+    font-size:1.7rem;
+  }
+
+  .modal-close-btn{
+    width:44px;
+    height:44px;
+    border:none;
+    border-radius:14px;
+    cursor:pointer;
+    background:rgba(255,255,255,.08);
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1rem;
+  }
+
+  .modal-close-btn:hover{
+    background:rgba(255,255,255,.14);
+  }
+
+  .detail-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:16px;
+  }
+
+  .detail-item{
+    padding:16px;
+    border-radius:18px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.07);
+  }
+
+  .detail-item-full{
+    grid-column:1 / -1;
+  }
+
+  .detail-label{
+    display:block;
+    font-size:.85rem;
+    color:var(--muted-2);
+    margin-bottom:8px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-weight:700;
+  }
+
+  .detail-item strong{
+    color:var(--text);
+    font-size:1rem;
+    line-height:1.6;
+    word-break:break-word;
+  }
+
+  .detail-note{
+    color:var(--text);
+    line-height:1.8;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+
+  .reservation-modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:18px;
+  }
+
+  body.modal-open{
+    overflow:hidden;
+  }
+
   @media (max-width: 980px){
     .admin-alert-lux-meta{
       grid-template-columns:1fr;
@@ -603,18 +980,27 @@
   @media (max-width: 768px){
     .admin-res-hero,
     .admin-res-table-card,
-    .admin-alert-lux{
+    .admin-alert-lux,
+    .reservation-modal-dialog,
+    .admin-search-card{
       padding:20px 16px;
     }
 
-    .admin-res-filter-row{
+    .admin-res-filter-row,
+    .admin-super-search-box{
       flex-direction:column;
       align-items:stretch;
     }
 
-    .admin-res-filter-row .btn{
+    .admin-res-filter-row .btn,
+    .admin-search-btn,
+    .admin-search-clear{
       width:100%;
       justify-content:center;
+    }
+
+    .admin-super-search-icon{
+      width:100%;
     }
 
     .admin-res-mobile-cards table,
@@ -668,7 +1054,9 @@
       align-items:stretch;
     }
 
-    .admin-inline-form .btn{
+    .admin-inline-form .btn,
+    .btn-detail,
+    .btn-checkin{
       width:100%;
       justify-content:center;
     }
@@ -677,10 +1065,74 @@
     .admin-alert-lux-item .btn{
       width:100%;
     }
+
+    .admin-alert-actions{
+      width:100%;
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    .detail-grid{
+      grid-template-columns:1fr;
+    }
   }
 </style>
 
-{% if has_pending_alerts %}
+<script>
+  const reservationDetailModal = document.getElementById("reservationDetailModal");
+
+  function mapStatusLabel(status) {
+    const st = String(status || "").toLowerCase();
+    if (st === "confirmed") return "Confirmada";
+    if (st === "checked_in") return "Check-in";
+    if (st === "checked_out") return "Check-out";
+    if (st === "cancelled") return "Cancelada";
+    return status || "—";
+  }
+
+  function setDetailText(id, value) {
+    const el = document.getElementById(id);
+    if (el) {
+      const finalValue = value == null ? "" : String(value).trim();
+      el.textContent = finalValue ? finalValue : "—";
+    }
+  }
+
+  function openReservationDetail(data) {
+    setDetailText("detailUserName", data.user_name);
+    setDetailText("detailGuestName", data.guest_name);
+    setDetailText("detailPhone", data.phone);
+    setDetailText("detailRoomName", data.room_name);
+    setDetailText("detailCheckIn", data.check_in);
+    setDetailText("detailCheckOut", data.check_out);
+    setDetailText("detailGuests", data.guests);
+    setDetailText("detailStatus", mapStatusLabel(data.status));
+
+    const note = document.getElementById("detailSpecialRequests");
+    if (note) {
+      const text = data.special_requests == null ? "" : String(data.special_requests).trim();
+      note.textContent = text ? text : "Sin solicitudes especiales.";
+    }
+
+    reservationDetailModal.classList.add("show");
+    reservationDetailModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeReservationDetail() {
+    reservationDetailModal.classList.remove("show");
+    reservationDetailModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && reservationDetailModal.classList.contains("show")) {
+      closeReservationDetail();
+    }
+  });
+</script>
+
+{% if has_pending_alerts and not q %}
 <script>
   (() => {
     const alarmBox = document.getElementById("alarmBox");

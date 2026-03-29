@@ -2,6 +2,39 @@
 {% block title %}Nueva reservación | Hotel Casa Bella{% endblock %}
 
 {% block content %}
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      {% if category == 'error' and ('no disponible' in message|lower or 'ocupada' in message|lower or 'habitacion' in message|lower or 'habitación' in message|lower) %}
+        <div class="booking-error-modal show" id="bookingErrorModal">
+          <div class="booking-error-backdrop"></div>
+
+          <div class="booking-error-dialog" role="dialog" aria-modal="true" aria-labelledby="bookingErrorTitle">
+            <div class="booking-error-icon">
+              <i class="bi bi-exclamation-lg"></i>
+            </div>
+
+            <h3 id="bookingErrorTitle">Habitación no disponible</h3>
+            <p>
+              La habitación seleccionada no está disponible para esas fechas.
+            </p>
+            <span class="booking-error-help">
+              Cambiar de habitación
+            </span>
+
+            <div class="booking-error-actions">
+              <button type="button" class="btn btn-primary" onclick="closeBookingErrorModal()">
+                Entendido
+              </button>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
 <section class="booking-shell" data-aos="fade-up">
   <div class="booking-layout">
     <article class="booking-card card">
@@ -27,15 +60,14 @@
             <label for="guest_name">Nombre completo</label>
             <div class="input-shell">
               <i class="bi bi-person"></i>
-              <input type="text" id="guest_name" name="guest_name" placeholder="Ej. Juan Pérez López" required />
-            </div>
-          </div>
-
-          <div class="field">
-            <label for="email">Correo electrónico</label>
-            <div class="input-shell">
-              <i class="bi bi-envelope"></i>
-              <input type="email" id="email" name="email" placeholder="correo@ejemplo.com" required />
+              <input
+                type="text"
+                id="guest_name"
+                name="guest_name"
+                placeholder="Ej. Juan Pérez López"
+                value="{{ request.form.get('guest_name', '') }}"
+                required
+              />
             </div>
           </div>
 
@@ -43,7 +75,14 @@
             <label for="phone">Teléfono</label>
             <div class="input-shell">
               <i class="bi bi-telephone"></i>
-              <input type="text" id="phone" name="phone" placeholder="+502 0000-0000" required />
+              <input
+                type="text"
+                id="phone"
+                name="phone"
+                placeholder="+502 0000-0000"
+                value="{{ request.form.get('phone', '') }}"
+                required
+              />
             </div>
           </div>
 
@@ -52,9 +91,15 @@
             <div class="select-shell">
               <i class="bi bi-stars"></i>
               <select name="category" id="categorySelect" required>
-                <option value="" selected disabled>Selecciona una categoría…</option>
+                <option value="" disabled {{ '' if request.form.get('category') else 'selected' }}>
+                  Selecciona una categoría…
+                </option>
                 {% for c in (categories or []) %}
-                  <option value="{{ c }}">{{ c }}</option>
+                  <option
+                    value="{{ c }}"
+                    {{ 'selected' if request.form.get('category') == c else '' }}>
+                    {{ c }}
+                  </option>
                 {% endfor %}
               </select>
             </div>
@@ -71,36 +116,58 @@
             <small class="field-note">Se mostrarán solo las habitaciones disponibles de la categoría elegida.</small>
           </div>
 
-          <div class="field field-highlight" id="extraBox" style="display:none;">
-            <label class="extra-title">Persona extra</label>
+          <div class="field field-highlight extra-highlight" id="extraBox" style="display:none;">
+            <div class="extra-topline">
+              <label class="extra-title" for="extraPersonCheck">Persona extra</label>
+              <span class="extra-badge">Opcional</span>
+            </div>
 
             <div class="extra-box-inner">
               <div class="extra-copy">
                 <strong>Agregar persona extra</strong>
                 <p>
-                  Disponible solo en Individual Delux permitidas
-                  (excepto 208 y 308).
+                  Disponible solo en habitaciones Individual Delux permitidas.
+                  Actívalo cuando se hospedarán 2 personas.
                 </p>
               </div>
 
-              <label class="extra-toggle">
-                <input type="checkbox" id="extraPersonCheck" />
+              <label class="extra-toggle" for="extraPersonCheck">
+                <input
+                  type="checkbox"
+                  id="extraPersonCheck"
+                  {{ 'checked' if request.form.get('extra_person') == '1' else '' }}
+                />
                 <span class="extra-switch"></span>
               </label>
             </div>
 
-            <div class="extra-price">
-              +Q<span id="extraFeeTxt">{{ '%.2f'|format(extra_fee or 50) }}</span> por noche
+            <div class="extra-price-wrap">
+              <div class="extra-price">
+                <i class="bi bi-stars"></i>
+                +Q<span id="extraFeeTxt">{{ '%.2f'|format(extra_fee or 75) }}</span> por noche
+              </div>
+              <small class="extra-mini-note">El monto se suma al total de la estancia.</small>
             </div>
 
-            <input type="hidden" name="extra_person" id="extraPersonInput" value="0" />
+            <input
+              type="hidden"
+              name="extra_person"
+              id="extraPersonInput"
+              value="{{ request.form.get('extra_person', '0') }}"
+            />
           </div>
 
           <div class="field">
             <label for="check_in">Fecha de llegada</label>
             <div class="input-shell">
               <i class="bi bi-calendar-event"></i>
-              <input type="date" id="check_in" name="check_in" required />
+              <input
+                type="date"
+                id="check_in"
+                name="check_in"
+                value="{{ request.form.get('check_in', '') }}"
+                required
+              />
             </div>
           </div>
 
@@ -108,7 +175,13 @@
             <label for="check_out">Fecha de salida</label>
             <div class="input-shell">
               <i class="bi bi-calendar-check"></i>
-              <input type="date" id="check_out" name="check_out" required />
+              <input
+                type="date"
+                id="check_out"
+                name="check_out"
+                value="{{ request.form.get('check_out', '') }}"
+                required
+              />
             </div>
           </div>
 
@@ -116,7 +189,15 @@
             <label for="guests">Número de huéspedes</label>
             <div class="input-shell">
               <i class="bi bi-people"></i>
-              <input type="number" id="guests" name="guests" min="1" placeholder="Ej. 2" required />
+              <input
+                type="number"
+                id="guests"
+                name="guests"
+                min="1"
+                placeholder="Ej. 2"
+                value="{{ request.form.get('guests', '') }}"
+                required
+              />
             </div>
             <small id="capHint" class="field-note"></small>
           </div>
@@ -129,7 +210,7 @@
                 id="special_requests"
                 name="special_requests"
                 rows="4"
-                placeholder="Escribe aquí cualquier solicitud adicional para la estancia…"></textarea>
+                placeholder="Escribe aquí cualquier solicitud adicional para la estancia…">{{ request.form.get('special_requests', '') }}</textarea>
             </div>
           </div>
         </div>
@@ -194,7 +275,7 @@
 
 <style>
   .booking-shell{
-    padding: 4px 0 10px;
+    padding:4px 0 10px;
   }
 
   .booking-layout{
@@ -322,43 +403,116 @@
   .field-highlight{
     grid-column:1 / -1;
     padding:18px;
-    border-radius:20px;
+    border-radius:24px;
     background:linear-gradient(180deg, rgba(200,169,107,.08), rgba(200,169,107,.04));
     border:1px solid rgba(200,169,107,.15);
   }
 
-  .extra-box-inner{
+  .extra-highlight{
+    position:relative;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at top right, rgba(34,197,94,.18), transparent 35%),
+      linear-gradient(180deg, rgba(200,169,107,.10), rgba(200,169,107,.04));
+    border:1px solid rgba(200,169,107,.24);
+    box-shadow:0 16px 34px rgba(0,0,0,.14);
+  }
+
+  .extra-highlight::after{
+    content:"";
+    position:absolute;
+    inset:auto -50px -50px auto;
+    width:170px;
+    height:170px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(255,255,255,.08), transparent 70%);
+    pointer-events:none;
+  }
+
+  .extra-topline{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    gap:16px;
+    gap:12px;
+    margin-bottom:12px;
+  }
+
+  .extra-badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:8px 14px;
+    border-radius:999px;
+    background:linear-gradient(135deg, rgba(34,197,94,.24), rgba(15,118,110,.22));
+    color:#f0fdf4;
+    border:1px solid rgba(255,255,255,.18);
+    font-size:.78rem;
+    font-weight:900;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    box-shadow:0 8px 18px rgba(34,197,94,.18);
+  }
+
+  .extra-box-inner{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) 170px;
+    align-items:center;
+    gap:24px;
+  }
+
+  .extra-copy{
+    min-width:0;
+    max-width:none;
   }
 
   .extra-copy strong{
     display:block;
     color:var(--text);
-    margin-bottom:4px;
-    font-size:1rem;
+    margin-bottom:6px;
+    font-size:1.08rem;
   }
 
   .extra-copy p{
     margin:0;
     color:var(--muted);
     line-height:1.7;
-    font-size:.94rem;
+    font-size:.95rem;
+  }
+
+  .extra-price-wrap{
+    margin-top:14px;
+    display:grid;
+    gap:6px;
   }
 
   .extra-price{
-    margin-top:12px;
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+    width:max-content;
+    padding:10px 14px;
+    border-radius:14px;
+    background:rgba(0,0,0,.18);
+    border:1px solid rgba(255,255,255,.08);
     color:#f3dfb9;
     font-weight:800;
     font-size:.96rem;
   }
 
+  .extra-price i{
+    color:var(--gold);
+  }
+
+  .extra-mini-note{
+    color:var(--muted-2);
+    line-height:1.6;
+  }
+
   .extra-toggle{
-    position:relative;
-    display:inline-flex;
+    width:170px;
+    display:flex;
     align-items:center;
+    justify-content:flex-end;
     cursor:pointer;
     flex-shrink:0;
   }
@@ -370,34 +524,64 @@
   }
 
   .extra-switch{
-    width:58px;
-    height:32px;
+    width:120px;
+    height:56px;
     border-radius:999px;
-    background:rgba(255,255,255,.12);
-    border:1px solid rgba(255,255,255,.14);
+    background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+    border:1px solid rgba(255,255,255,.18);
     position:relative;
-    transition:.25s ease;
+    transition:.28s ease;
+    box-shadow:
+      inset 0 0 0 1px rgba(255,255,255,.03),
+      0 10px 24px rgba(0,0,0,.24);
+  }
+
+  .extra-switch::before{
+    content:"OFF";
+    position:absolute;
+    right:18px;
+    top:50%;
+    transform:translateY(-50%);
+    color:rgba(255,255,255,.95);
+    font-size:.82rem;
+    font-weight:900;
+    letter-spacing:.12em;
+    text-shadow:0 1px 6px rgba(0,0,0,.25);
   }
 
   .extra-switch::after{
     content:"";
-    width:24px;
-    height:24px;
+    width:42px;
+    height:42px;
     border-radius:50%;
-    background:#fff;
+    background:linear-gradient(180deg, #ffffff, #eef2f7);
     position:absolute;
-    top:3px;
-    left:4px;
-    transition:.25s ease;
+    top:6px;
+    left:7px;
+    transition:.28s ease;
+    box-shadow:0 10px 18px rgba(0,0,0,.24);
   }
 
   .extra-toggle input:checked + .extra-switch{
-    background:linear-gradient(135deg, var(--green), var(--green-2));
-    border-color:rgba(255,255,255,.18);
+    background:linear-gradient(135deg, #22c55e, #0f766e);
+    border-color:rgba(255,255,255,.24);
+    box-shadow:0 14px 30px rgba(34,197,94,.30);
+  }
+
+  .extra-toggle input:checked + .extra-switch::before{
+    content:"ON";
+    left:20px;
+    right:auto;
+    color:#fff;
   }
 
   .extra-toggle input:checked + .extra-switch::after{
-    left:28px;
+    left:70px;
+  }
+
+  .extra-toggle input:focus-visible + .extra-switch{
+    outline:3px solid rgba(200,169,107,.35);
+    outline-offset:3px;
   }
 
   .booking-actions{
@@ -479,6 +663,116 @@
     font-size:.94rem;
   }
 
+  input[type="date"]{
+    color-scheme:dark;
+  }
+
+  input[type="date"]::-webkit-calendar-picker-indicator{
+    filter:invert(1);
+    opacity:0.9;
+    cursor:pointer;
+  }
+
+  input[type="date"]::-webkit-datetime-edit{
+    color:var(--text);
+  }
+
+  input[type="date"]::-webkit-datetime-edit-text,
+  input[type="date"]::-webkit-datetime-edit-month-field,
+  input[type="date"]::-webkit-datetime-edit-day-field,
+  input[type="date"]::-webkit-datetime-edit-year-field{
+    color:var(--text);
+  }
+
+  .booking-error-modal{
+    position:fixed;
+    inset:0;
+    z-index:2500;
+    display:none;
+  }
+
+  .booking-error-modal.show{
+    display:block;
+  }
+
+  .booking-error-backdrop{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.55);
+    backdrop-filter:blur(5px);
+  }
+
+  .booking-error-dialog{
+    position:relative;
+    z-index:1;
+    width:min(640px, calc(100% - 28px));
+    margin:10vh auto 0;
+    background:#f8f8f8;
+    color:#3a3a3a;
+    border-radius:18px;
+    box-shadow:0 24px 70px rgba(0,0,0,.35);
+    text-align:center;
+    padding:42px 34px 28px;
+    animation:bookingModalIn .25s ease;
+  }
+
+  .booking-error-icon{
+    width:110px;
+    height:110px;
+    border-radius:50%;
+    margin:0 auto 24px;
+    border:5px solid #e8ae77;
+    color:#e8ae77;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:3.2rem;
+  }
+
+  .booking-error-dialog h3{
+    margin:0 0 14px;
+    font-size:2.6rem;
+    font-weight:800;
+    color:#5a5a5a;
+  }
+
+  .booking-error-dialog p{
+    margin:0;
+    font-size:1.15rem;
+    line-height:1.6;
+    color:#666;
+  }
+
+  .booking-error-help{
+    display:block;
+    margin-top:8px;
+    font-size:1.08rem;
+    font-weight:700;
+    color:#7a7a7a;
+  }
+
+  .booking-error-actions{
+    margin-top:26px;
+    display:flex;
+    justify-content:center;
+  }
+
+  .booking-error-actions .btn{
+    min-width:180px;
+    justify-content:center;
+  }
+
+  @keyframes bookingModalIn{
+    from{
+      opacity:0;
+      transform:translateY(-12px) scale(.98);
+    }
+    to{
+      opacity:1;
+      transform:translateY(0) scale(1);
+    }
+  }
+
   @media (max-width: 1080px){
     .booking-layout{
       grid-template-columns:1fr;
@@ -515,8 +809,13 @@
     }
 
     .extra-box-inner{
-      flex-direction:column;
+      grid-template-columns:1fr;
       align-items:flex-start;
+    }
+
+    .extra-toggle{
+      width:100%;
+      justify-content:flex-start;
     }
 
     .booking-head-badge{
@@ -524,36 +823,30 @@
       justify-content:center;
       white-space:normal;
     }
+
+    .booking-error-dialog{
+      padding:30px 18px 22px;
+      margin-top:8vh;
+    }
+
+    .booking-error-icon{
+      width:88px;
+      height:88px;
+      font-size:2.5rem;
+    }
+
+    .booking-error-dialog h3{
+      font-size:2rem;
+    }
   }
-  /* ===== INPUT DATE PREMIUM FIX ===== */
-input[type="date"] {
-  color-scheme: dark; /* fuerza modo oscuro */
-}
-
-/* icono del calendario */
-input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1); /* lo vuelve blanco */
-  opacity: 0.9;
-  cursor: pointer;
-}
-
-/* evita fondo blanco raro al abrir */
-input[type="date"]::-webkit-datetime-edit {
-  color: var(--text);
-}
-
-/* placeholder (cuando está vacío) */
-input[type="date"]::-webkit-datetime-edit-text,
-input[type="date"]::-webkit-datetime-edit-month-field,
-input[type="date"]::-webkit-datetime-edit-day-field,
-input[type="date"]::-webkit-datetime-edit-year-field {
-  color: var(--text);
-}
 </style>
 
 <script>
   const ROOMS = {{ (rooms_meta or [])|tojson }};
-  const EXTRA_FEE = {{ (extra_fee or 50)|float }};
+  const EXTRA_FEE = {{ (extra_fee or 75)|float }};
+  const FORM_CATEGORY = {{ request.form.get('category', '')|tojson }};
+  const FORM_ROOM_ID = {{ request.form.get('room_id', '')|tojson }};
+  const FORM_EXTRA_PERSON = {{ request.form.get('extra_person', '0')|tojson }};
 
   const categorySelect = document.getElementById("categorySelect");
   const roomSelect = document.getElementById("roomSelect");
@@ -593,14 +886,8 @@ input[type="date"]::-webkit-datetime-edit-year-field {
     return ROOMS.find(r => String(r.id) === String(id)) || null;
   }
 
-  resetRoomSelect("Primero elige una categoría…");
-  roomSelect.disabled = true;
-  setExtraUI(false, EXTRA_FEE);
-  capHint.textContent = "";
-
-  categorySelect.addEventListener("change", () => {
-    const cat = categorySelect.value;
-    const filtered = ROOMS.filter(r => String(r.category) === String(cat));
+  function populateRooms(selectedCategory, selectedRoomId = ""){
+    const filtered = ROOMS.filter(r => String(r.category) === String(selectedCategory));
 
     roomSelect.disabled = false;
     resetRoomSelect(
@@ -618,32 +905,71 @@ input[type="date"]::-webkit-datetime-edit-year-field {
       if (allowExtra) capTxt += " (+1 extra)";
 
       opt.textContent = `${r.name} — ${capTxt} — ${moneyQ(r.price)}`;
+
+      if (String(selectedRoomId) === String(r.id)) {
+        opt.selected = true;
+      }
+
       roomSelect.appendChild(opt);
     });
 
-    setExtraUI(false, EXTRA_FEE);
-    capHint.textContent = "";
-  });
+    if (selectedRoomId) {
+      roomSelect.disabled = false;
+    }
+  }
 
-  roomSelect.addEventListener("change", () => {
+  function refreshCapacityHintAndExtra(){
     const r = selectedRoomMeta();
-    if (!r) return;
+
+    if (!r){
+      setExtraUI(false, EXTRA_FEE);
+      capHint.textContent = "";
+      return;
+    }
 
     const allowExtra = !!r.extraAllowed;
     setExtraUI(allowExtra, EXTRA_FEE);
 
     if (allowExtra){
       capHint.textContent = `Capacidad base: ${r.capacity}. Con persona extra: ${Number(r.capacity) + 1}.`;
+      extraPersonCheck.checked = FORM_EXTRA_PERSON === "1" || extraPersonInput.value === "1";
+      extraPersonInput.value = extraPersonCheck.checked ? "1" : "0";
     } else {
       capHint.textContent = `Capacidad máxima: ${r.capacity}.`;
+      extraPersonCheck.checked = false;
+      extraPersonInput.value = "0";
     }
+  }
 
-    extraPersonCheck.checked = false;
-    extraPersonInput.value = "0";
+  resetRoomSelect("Primero elige una categoría…");
+  roomSelect.disabled = true;
+  setExtraUI(false, EXTRA_FEE);
+  capHint.textContent = "";
+
+  if (FORM_CATEGORY){
+    categorySelect.value = FORM_CATEGORY;
+    populateRooms(FORM_CATEGORY, FORM_ROOM_ID);
+    refreshCapacityHintAndExtra();
+  }
+
+  categorySelect.addEventListener("change", () => {
+    const cat = categorySelect.value;
+    populateRooms(cat);
+    setExtraUI(false, EXTRA_FEE);
+    capHint.textContent = "";
+  });
+
+  roomSelect.addEventListener("change", () => {
+    refreshCapacityHintAndExtra();
   });
 
   extraPersonCheck.addEventListener("change", () => {
     extraPersonInput.value = extraPersonCheck.checked ? "1" : "0";
   });
+
+  function closeBookingErrorModal() {
+    const modal = document.getElementById("bookingErrorModal");
+    if (modal) modal.classList.remove("show");
+  }
 </script>
 {% endblock %}

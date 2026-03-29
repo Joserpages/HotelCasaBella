@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block title %}Convertir a check-in | Admin{% endblock %}
+
+{% block content %}
+<section class="convert-shell" data-aos="fade-up">
+  <section class="convert-hero card">
+    <div>
+      <span class="section-kicker">Recepción</span>
+      <h1>Pasar reservación a check-in</h1>
+      <p>
+        Completa los datos reales de llegada para que esta reservación se convierta
+        en un check-in válido para hospedaje y control de dinero.
+      </p>
+    </div>
+
+    <div class="convert-hero-actions">
+      <a href="{{ url_for('admin_hotel_reservations') }}" class="btn btn-outline">
+        <i class="bi bi-arrow-left"></i>
+        Volver a reservaciones
+      </a>
+      <a href="{{ url_for('admin_hotel_hospedados') }}" class="btn btn-primary">
+        <i class="bi bi-people"></i>
+        Ver hospedados
+      </a>
+    </div>
+  </section>
+
+  <div class="convert-layout">
+    <article class="convert-main card">
+      <div class="convert-main-head">
+        <div>
+          <span class="section-kicker">Conversión</span>
+          <h2>Datos de llegada</h2>
+          <p>
+            Ajusta la información final del huésped antes de ingresarlo al hotel.
+          </p>
+        </div>
+
+        <div class="convert-status-badge">
+          <i class="bi bi-box-arrow-in-right"></i>
+          <span>Check-in desde reserva</span>
+        </div>
+      </div>
+
+      <form method="POST" class="convert-form" id="convertCheckinForm">
+        <div class="convert-grid">
+          <div class="field">
+            <label for="guest_name">Nombre del huésped</label>
+            <div class="input-shell">
+              <i class="bi bi-person"></i>
+              <input
+                type="text"
+                id="guest_name"
+                name="guest_name"
+                required
+                value="{{ reservation.guest_name }}"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="phone">Teléfono</label>
+            <div class="input-shell">
+              <i class="bi bi-telephone"></i>
+              <input
+                type="text"
+                id="phone"
+                name="phone"
+                required
+                value="{{ reservation.phone }}"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="check_in">Fecha de ingreso</label>
+            <div class="input-shell">
+              <i class="bi bi-calendar-event"></i>
+              <input
+                type="date"
+                id="check_in"
+                name="check_in"
+                required
+                value="{{ reservation.check_in }}"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="check_out">Fecha de salida</label>
+            <div class="input-shell">
+              <i class="bi bi-calendar-check"></i>
+              <input
+                type="date"
+                id="check_out"
+                name="check_out"
+                required
+                value="{{ reservation.check_out }}"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="guests">Número de huéspedes</label>
+            <div class="input-shell">
+              <i class="bi bi-people"></i>
+              <input
+                type="number"
+                id="guests"
+                name="guests"
+                min="1"
+                required
+                value="{{ reservation.guests }}"
+              >
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="payment_method">Método de pago</label>
+            <div class="select-shell">
+              <i class="bi bi-credit-card"></i>
+              <select id="payment_method" name="payment_method" required>
+                <option value="cash">Efectivo</option>
+                <option value="card">Tarjeta</option>
+                <option value="transfer">Transferencia</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <div class="paid-info-box">
+              <div class="paid-info-icon">
+                <i class="bi bi-patch-check-fill"></i>
+              </div>
+              <div>
+                <strong>Pago completo obligatorio</strong>
+                <p>
+                  Al confirmar este check-in, el sistema registrará automáticamente el total como pagado
+                  y no dejará saldo pendiente.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="field field-full">
+            <label for="special_requests">Observaciones</label>
+            <div class="textarea-shell">
+              <i class="bi bi-chat-left-text"></i>
+              <textarea
+                id="special_requests"
+                name="special_requests"
+                rows="4"
+                placeholder="Observaciones del check-in..."
+              >{{ reservation.special_requests or '' }}</textarea>
+            </div>
+          </div>
+
+          <div class="field field-full extra-card">
+            <div class="extra-topline">
+              <label class="extra-title" for="extraPersonCheck">Persona extra</label>
+              <span class="extra-badge">Opcional</span>
+            </div>
+
+            <div class="extra-box-inner">
+              <div class="extra-copy">
+                <strong>Agregar persona extra</strong>
+                <p>
+                  Actívalo si la ocupación real requiere cargo adicional.
+                </p>
+              </div>
+
+              <label class="extra-toggle" for="extraPersonCheck">
+                <input type="checkbox" id="extraPersonCheck" name="extra_person" value="1">
+                <span class="extra-switch"></span>
+              </label>
+            </div>
+
+            <div class="extra-price-wrap">
+              <div class="extra-price">
+                <i class="bi bi-plus-circle"></i>
+                +Q<span id="extraFeeTxt">{{ "%.2f"|format(extra_fee) }}</span> por noche
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="convert-actions">
+          <button type="submit" class="btn btn-primary">
+            <i class="bi bi-check2-circle"></i>
+            Confirmar check-in
+          </button>
+        </div>
+      </form>
+    </article>
+
+    <aside class="convert-side card">
+      <div class="convert-side-head">
+        <span class="section-kicker">Resumen reserva</span>
+        <h3>Datos actuales</h3>
+      </div>
+
+      <div class="convert-side-list">
+        <div class="convert-side-item">
+          <span>Huésped</span>
+          <strong>{{ reservation.guest_name }}</strong>
+        </div>
+
+        <div class="convert-side-item">
+          <span>Habitación</span>
+          <strong>{{ reservation.room_name }}</strong>
+        </div>
+
+        <div class="convert-side-item">
+          <span>Categoría</span>
+          <strong>{{ reservation.room_category }}</strong>
+        </div>
+
+        <div class="convert-side-item">
+          <span>Entrada</span>
+          <strong>{{ reservation.check_in }}</strong>
+        </div>
+
+        <div class="convert-side-item">
+          <span>Salida</span>
+          <strong>{{ reservation.check_out }}</strong>
+        </div>
+
+        <div class="convert-side-item">
+          <span>Tarifa noche</span>
+          <strong>Q {{ '%.2f'|format(reservation.price_per_night) }}</strong>
+        </div>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<style>
+  .convert-shell{display:grid;gap:22px}
+  .section-kicker{
+    display:inline-block;font-size:.82rem;text-transform:uppercase;letter-spacing:.18em;
+    color:var(--gold);margin-bottom:10px;font-weight:700;
+  }
+
+  .convert-hero{
+    display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;padding:30px;
+  }
+  .convert-hero h1{margin:0;font-size:clamp(2rem,4vw,3rem);line-height:1.04}
+  .convert-hero p{margin:10px 0 0;max-width:760px;color:var(--muted);line-height:1.85}
+  .convert-hero-actions{display:flex;gap:12px;flex-wrap:wrap}
+
+  .convert-layout{
+    display:grid;grid-template-columns:minmax(0,1.35fr) 360px;gap:22px;align-items:start;
+  }
+  .convert-main{padding:32px}
+  .convert-side{padding:26px;position:sticky;top:112px}
+
+  .convert-main-head{
+    display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:28px;
+  }
+  .convert-main-head h2{margin:0 0 10px;font-size:2rem;line-height:1.1}
+  .convert-main-head p{margin:0;color:var(--muted);line-height:1.8;max-width:740px}
+  .convert-status-badge{
+    display:inline-flex;align-items:center;gap:10px;padding:12px 16px;border-radius:999px;
+    background:rgba(200,169,107,.10);border:1px solid rgba(200,169,107,.18);color:#f3dfb9;font-weight:700;
+  }
+
+  .convert-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .field{min-width:0}
+  .field-full{grid-column:1 / -1}
+  .field label,.extra-title{
+    display:block;margin-bottom:9px;color:var(--text);font-weight:700;font-size:1rem;
+  }
+
+  .input-shell,.select-shell,.textarea-shell{position:relative}
+  .input-shell i,.select-shell i,.textarea-shell i{
+    position:absolute;left:16px;top:18px;color:rgba(247,244,238,.62);font-size:1rem;pointer-events:none;
+  }
+  .input-shell input,.select-shell select{padding-left:46px}
+  .textarea-shell textarea{padding-left:46px;padding-top:15px}
+
+  .paid-info-box{
+    display:flex;gap:14px;align-items:flex-start;padding:18px;border-radius:20px;
+    background:linear-gradient(135deg, rgba(34,197,94,.16), rgba(16,185,129,.08));
+    border:1px solid rgba(34,197,94,.22);
+  }
+  .paid-info-icon{
+    width:48px;height:48px;border-radius:16px;display:flex;align-items:center;justify-content:center;
+    background:rgba(34,197,94,.16);color:#86efac;font-size:1.2rem;flex-shrink:0;
+  }
+  .paid-info-box strong{display:block;margin-bottom:6px}
+  .paid-info-box p{margin:0;color:var(--muted);line-height:1.7}
+
+  .extra-card{
+    padding:18px;border-radius:24px;background:radial-gradient(circle at top right, rgba(34,197,94,.18), transparent 35%), linear-gradient(180deg, rgba(200,169,107,.10), rgba(200,169,107,.04));
+    border:1px solid rgba(200,169,107,.24);box-shadow:0 16px 34px rgba(0,0,0,.14);
+  }
+  .extra-topline{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;
+  }
+  .extra-badge{
+    display:inline-flex;align-items:center;justify-content:center;padding:8px 14px;border-radius:999px;
+    background:linear-gradient(135deg, rgba(34,197,94,.24), rgba(15,118,110,.22));color:#f0fdf4;
+    border:1px solid rgba(255,255,255,.18);font-size:.78rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase;
+  }
+  .extra-box-inner{
+    display:grid;grid-template-columns:minmax(0,1fr) 170px;align-items:center;gap:24px;
+  }
+  .extra-copy strong{display:block;color:var(--text);margin-bottom:6px;font-size:1.08rem}
+  .extra-copy p{margin:0;color:var(--muted);line-height:1.7;font-size:.95rem}
+  .extra-price-wrap{margin-top:14px;display:grid;gap:6px}
+  .extra-price{
+    display:inline-flex;align-items:center;gap:10px;width:max-content;padding:10px 14px;border-radius:14px;
+    background:rgba(0,0,0,.18);border:1px solid rgba(255,255,255,.08);color:#f3dfb9;font-weight:800;font-size:.96rem;
+  }
+
+  .extra-toggle{
+    width:170px;display:flex;align-items:center;justify-content:flex-end;cursor:pointer;flex-shrink:0;
+  }
+  .extra-toggle input{position:absolute;opacity:0;pointer-events:none}
+  .extra-switch{
+    width:120px;height:56px;border-radius:999px;background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+    border:1px solid rgba(255,255,255,.18);position:relative;transition:.28s ease;
+  }
+  .extra-switch::before{
+    content:"OFF";position:absolute;right:18px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.95);
+    font-size:.82rem;font-weight:900;letter-spacing:.12em;
+  }
+  .extra-switch::after{
+    content:"";width:42px;height:42px;border-radius:50%;background:linear-gradient(180deg, #ffffff, #eef2f7);
+    position:absolute;top:6px;left:7px;transition:.28s ease;
+  }
+  .extra-toggle input:checked + .extra-switch{background:linear-gradient(135deg, #22c55e, #0f766e)}
+  .extra-toggle input:checked + .extra-switch::before{content:"ON";left:20px;right:auto;color:#fff}
+  .extra-toggle input:checked + .extra-switch::after{left:70px}
+
+  .convert-actions{display:flex;justify-content:flex-end;margin-top:24px}
+
+  .convert-side-head h3{margin:0;font-size:1.8rem}
+  .convert-side-list{display:grid;gap:14px;margin-top:18px}
+  .convert-side-item{
+    padding:16px;border-radius:20px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);
+  }
+  .convert-side-item span{display:block;color:var(--muted-2);margin-bottom:6px}
+  .convert-side-item strong{color:var(--text);font-size:1rem}
+
+  @media (max-width:1080px){
+    .convert-layout{grid-template-columns:1fr}
+    .convert-side{position:static}
+  }
+
+  @media (max-width:768px){
+    .convert-hero,.convert-main,.convert-side{padding:20px 16px}
+    .convert-hero-actions .btn{width:100%;justify-content:center}
+    .convert-grid{grid-template-columns:1fr}
+    .extra-box-inner{grid-template-columns:1fr}
+    .extra-toggle{width:100%;justify-content:flex-start}
+    .convert-actions .btn{width:100%;justify-content:center}
+  }
+</style>
+{% endblock %}

@@ -36,17 +36,38 @@
           <div class="admin-alert-meta">
             <span><i class="bi bi-person"></i> Cliente: {{ r.user_name }}</span>
             <span><i class="bi bi-door-open"></i> Habitación: {{ r.room_name }}</span>
+            <span><i class="bi bi-telephone"></i> Teléfono: {{ r.phone or 'No disponible' }}</span>
             <span><i class="bi bi-calendar-event"></i> Entrada: {{ r.check_in }}</span>
             <span><i class="bi bi-calendar-check"></i> Salida: {{ r.check_out }}</span>
           </div>
         </div>
 
-        <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
-          <button type="submit" class="btn btn-danger-soft">
-            <i class="bi bi-bell-slash"></i>
-            Quitar alarma
+        <div class="admin-alert-actions">
+          <button
+            type="button"
+            class="btn btn-outline btn-sm"
+            onclick='openDashboardDetail({
+              "user_name": {{ r.user_name|tojson }},
+              "guest_name": {{ r.guest_name|tojson }},
+              "phone": {{ (r.phone or "")|tojson }},
+              "room_name": {{ r.room_name|tojson }},
+              "check_in": {{ r.check_in|tojson }},
+              "check_out": {{ r.check_out|tojson }},
+              "guests": {{ r.guests|tojson }},
+              "status": {{ r.status|tojson }},
+              "special_requests": {{ (r.special_requests or "")|tojson }}
+            })'>
+            <i class="bi bi-eye"></i>
+            Detalle
           </button>
-        </form>
+
+          <form method="post" action="{{ url_for('dismiss_reservation_alert', reservation_id=r.id) }}">
+            <button type="submit" class="btn btn-danger-soft">
+              <i class="bi bi-bell-slash"></i>
+              Quitar alarma
+            </button>
+          </form>
+        </div>
       </article>
       {% endfor %}
     </div>
@@ -121,6 +142,7 @@
               <th>Llegada</th>
               <th>Salida</th>
               <th>Estado</th>
+              <th>Detalle</th>
             </tr>
           </thead>
           <tbody>
@@ -152,6 +174,26 @@
                   {% endif %}
                 </span>
               </td>
+
+              <td data-label="Detalle">
+                <button
+                  type="button"
+                  class="btn btn-outline btn-sm btn-detail"
+                  onclick='openDashboardDetail({
+                    "user_name": {{ (reservation.user_name or "")|tojson }},
+                    "guest_name": {{ reservation.guest_name|tojson }},
+                    "phone": {{ (reservation.phone or "")|tojson }},
+                    "room_name": {{ reservation.room_name|tojson }},
+                    "check_in": {{ reservation.check_in|tojson }},
+                    "check_out": {{ reservation.check_out|tojson }},
+                    "guests": {{ reservation.guests|tojson }},
+                    "status": {{ reservation.status|tojson }},
+                    "special_requests": {{ (reservation.special_requests or "")|tojson }}
+                  })'>
+                  <i class="bi bi-eye"></i>
+                  Detalle
+                </button>
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -171,6 +213,78 @@
   </section>
 </section>
 
+<div class="reservation-modal" id="dashboardDetailModal" aria-hidden="true">
+  <div class="reservation-modal-backdrop" onclick="closeDashboardDetail()"></div>
+
+  <div class="reservation-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="dashboardDetailTitle">
+    <div class="reservation-modal-head">
+      <div>
+        <span class="section-kicker">Detalle de check-in</span>
+        <h3 id="dashboardDetailTitle">Información del huésped</h3>
+      </div>
+
+      <button type="button" class="modal-close-btn" onclick="closeDashboardDetail()">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+
+    <div class="reservation-modal-body">
+      <div class="detail-grid">
+        <div class="detail-item">
+          <span class="detail-label">Cliente</span>
+          <strong id="dashDetailUserName">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Huésped</span>
+          <strong id="dashDetailGuestName">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Teléfono</span>
+          <strong id="dashDetailPhone">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Habitación</span>
+          <strong id="dashDetailRoomName">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Entrada</span>
+          <strong id="dashDetailCheckIn">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Salida</span>
+          <strong id="dashDetailCheckOut">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Huéspedes</span>
+          <strong id="dashDetailGuests">—</strong>
+        </div>
+
+        <div class="detail-item">
+          <span class="detail-label">Estado</span>
+          <strong id="dashDetailStatus">—</strong>
+        </div>
+
+        <div class="detail-item detail-item-full">
+          <span class="detail-label">Solicitudes especiales</span>
+          <div class="detail-note" id="dashDetailSpecialRequests">Sin solicitudes especiales.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="reservation-modal-actions">
+      <button type="button" class="btn btn-outline" onclick="closeDashboardDetail()">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
 <style>
   .dashboard-shell{
     display:grid;
@@ -187,7 +301,6 @@
     font-weight:700;
   }
 
-  /* HERO */
   .dashboard-hero{
     display:flex;
     align-items:center;
@@ -230,7 +343,6 @@
     flex-wrap:wrap;
   }
 
-  /* ALERTA */
   .admin-alert{
     background:linear-gradient(180deg, rgba(95,16,16,.95), rgba(60,10,10,.95));
     border:1px solid rgba(255,255,255,.08);
@@ -318,6 +430,13 @@
     flex:1;
   }
 
+  .admin-alert-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+
   .admin-alert-badges{
     display:flex;
     gap:8px;
@@ -377,7 +496,6 @@
     background:#dc2626;
   }
 
-  /* STATS */
   .stats-premium{
     display:grid;
     grid-template-columns:repeat(3, minmax(0, 1fr));
@@ -444,7 +562,6 @@
     font-size:.95rem;
   }
 
-  /* TABLE */
   .dashboard-table-card{
     padding:28px;
   }
@@ -473,7 +590,7 @@
     width:100%;
     border-collapse:separate;
     border-spacing:0;
-    min-width:860px;
+    min-width:980px;
     border-radius:20px;
     overflow:hidden;
     background:rgba(255,255,255,.02);
@@ -542,6 +659,11 @@
     color:#fee2e2;
   }
 
+  .btn-detail{
+    min-width:110px;
+    justify-content:center;
+  }
+
   .empty-admin-state{
     text-align:center;
     padding:42px 20px 24px;
@@ -576,7 +698,120 @@
     line-height:1.8;
   }
 
-  /* RESPONSIVE */
+  .reservation-modal{
+    position:fixed;
+    inset:0;
+    z-index:1200;
+    display:none;
+  }
+
+  .reservation-modal.show{
+    display:block;
+  }
+
+  .reservation-modal-backdrop{
+    position:absolute;
+    inset:0;
+    background:rgba(0,0,0,.6);
+    backdrop-filter:blur(6px);
+  }
+
+  .reservation-modal-dialog{
+    position:relative;
+    z-index:1;
+    width:min(720px, calc(100% - 24px));
+    margin:5vh auto;
+    border-radius:26px;
+    background:linear-gradient(180deg, rgba(18,51,40,.98), rgba(12,37,29,.98));
+    border:1px solid rgba(255,255,255,.08);
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+    padding:24px;
+    max-height:90vh;
+    overflow:auto;
+  }
+
+  .reservation-modal-head{
+    display:flex;
+    align-items:flex-start;
+    justify-content:space-between;
+    gap:16px;
+    margin-bottom:18px;
+  }
+
+  .reservation-modal-head h3{
+    margin:0;
+    font-size:1.7rem;
+  }
+
+  .modal-close-btn{
+    width:44px;
+    height:44px;
+    border:none;
+    border-radius:14px;
+    cursor:pointer;
+    background:rgba(255,255,255,.08);
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:1rem;
+  }
+
+  .modal-close-btn:hover{
+    background:rgba(255,255,255,.14);
+  }
+
+  .detail-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:16px;
+  }
+
+  .detail-item{
+    padding:16px;
+    border-radius:18px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.07);
+  }
+
+  .detail-item-full{
+    grid-column:1 / -1;
+  }
+
+  .detail-label{
+    display:block;
+    font-size:.85rem;
+    color:var(--muted-2);
+    margin-bottom:8px;
+    text-transform:uppercase;
+    letter-spacing:.12em;
+    font-weight:700;
+  }
+
+  .detail-item strong{
+    color:var(--text);
+    font-size:1rem;
+    line-height:1.6;
+    word-break:break-word;
+  }
+
+  .detail-note{
+    color:var(--text);
+    line-height:1.8;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+
+  .reservation-modal-actions{
+    display:flex;
+    justify-content:flex-end;
+    margin-top:18px;
+  }
+
+  body.modal-open{
+    overflow:hidden;
+  }
+
   @media (max-width: 1100px){
     .stats-premium{
       grid-template-columns:1fr;
@@ -592,7 +827,8 @@
   @media (max-width: 768px){
     .dashboard-hero,
     .dashboard-table-card,
-    .admin-alert{
+    .admin-alert,
+    .reservation-modal-dialog{
       padding:20px 16px;
     }
 
@@ -651,12 +887,77 @@
       width:100%;
     }
 
-    .dashboard-hero-actions .btn{
+    .admin-alert-actions{
+      width:100%;
+      flex-direction:column;
+      align-items:stretch;
+    }
+
+    .dashboard-hero-actions .btn,
+    .btn-detail{
       width:100%;
       justify-content:center;
     }
+
+    .detail-grid{
+      grid-template-columns:1fr;
+    }
   }
 </style>
+
+<script>
+  const dashboardDetailModal = document.getElementById("dashboardDetailModal");
+
+  function mapDashStatusLabel(status) {
+    const st = String(status || "").toLowerCase();
+    if (st === "confirmed") return "Confirmada";
+    if (st === "checked_in") return "Check-in";
+    if (st === "checked_out") return "Check-out";
+    if (st === "cancelled") return "Cancelada";
+    return status || "—";
+  }
+
+  function setDashDetailText(id, value) {
+    const el = document.getElementById(id);
+    if (el) {
+      const finalValue = value == null ? "" : String(value).trim();
+      el.textContent = finalValue ? finalValue : "—";
+    }
+  }
+
+  function openDashboardDetail(data) {
+    setDashDetailText("dashDetailUserName", data.user_name);
+    setDashDetailText("dashDetailGuestName", data.guest_name);
+    setDashDetailText("dashDetailPhone", data.phone);
+    setDashDetailText("dashDetailRoomName", data.room_name);
+    setDashDetailText("dashDetailCheckIn", data.check_in);
+    setDashDetailText("dashDetailCheckOut", data.check_out);
+    setDashDetailText("dashDetailGuests", data.guests);
+    setDashDetailText("dashDetailStatus", mapDashStatusLabel(data.status));
+
+    const note = document.getElementById("dashDetailSpecialRequests");
+    if (note) {
+      const text = data.special_requests == null ? "" : String(data.special_requests).trim();
+      note.textContent = text ? text : "Sin solicitudes especiales.";
+    }
+
+    dashboardDetailModal.classList.add("show");
+    dashboardDetailModal.setAttribute("aria-hidden", "false");
+    document.body.classList.add("modal-open");
+  }
+
+  function closeDashboardDetail() {
+    dashboardDetailModal.classList.remove("show");
+    dashboardDetailModal.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && dashboardDetailModal.classList.contains("show")) {
+      closeDashboardDetail();
+    }
+  });
+</script>
 
 {% if current_user and current_user.role == 'admin' and has_pending_alerts %}
 <script>

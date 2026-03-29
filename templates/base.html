@@ -4,23 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>{% block title %}Hotel Casa Bella{% endblock %}</title>
-   <!-- 🔥 FAVICON (ICONO DE LA PESTAÑA) -->
   <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
 
-  <!-- Tipografías premium -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Iconos -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-  <!-- AOS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/aos@2.3.4/dist/aos.css">
-
-  <!-- Swiper -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css"/>
-
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
 
   <style>
@@ -60,7 +52,6 @@
     }
 
     *{ box-sizing:border-box; }
-
     html{ scroll-behavior:smooth; }
 
     body{
@@ -97,7 +88,6 @@
       padding:26px 0 70px;
     }
 
-    /* HEADER */
     .topbar{
       position:sticky;
       top:0;
@@ -245,7 +235,6 @@
       background:rgba(255,255,255,.10);
     }
 
-    /* ALERTAS */
     .alerts{
       display:grid;
       gap:12px;
@@ -288,7 +277,6 @@
       border-color:rgba(59,130,246,.25);
     }
 
-    /* BASE */
     .card{
       background:linear-gradient(180deg, rgba(18,51,40,.92), rgba(13,42,33,.92));
       border:1px solid rgba(255,255,255,.08);
@@ -357,7 +345,6 @@
       transform:translateY(-2px);
     }
 
-    /* FORMULARIOS */
     form label,
     .form-label{
       display:block;
@@ -440,7 +427,6 @@
       line-height:1.6;
     }
 
-    /* TABLAS */
     .table-wrap{
       width:100%;
       overflow-x:auto;
@@ -536,7 +522,6 @@
       max-width:520px;
     }
 
-    /* FOOTER */
     .footer{
       border-top:1px solid rgba(255,255,255,.06);
       background:rgba(6,18,14,.92);
@@ -590,7 +575,6 @@
       text-align:right;
     }
 
-    /* MENU MOVIL */
     @media (max-width: 980px){
       .topbar-inner{
         min-height:84px;
@@ -693,7 +677,6 @@
         text-align:left;
       }
 
-      /* tabla -> cards en móvil */
       .table-mobile-cards table,
       .table-mobile-cards thead,
       .table-mobile-cards tbody,
@@ -771,6 +754,7 @@
       {% if current_user %}
         {% if current_user.role == 'admin' %}
           <a href="{{ url_for('admin_dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a>
+          <a href="{{ url_for('admin_hotel') }}" class="bi bi-house-door">Hotel</a>
           <a href="{{ url_for('admin_reservations') }}"><i class="bi bi-journal-check"></i> Reservaciones</a>
         {% else %}
           <a href="{{ url_for('my_reservations') }}"><i class="bi bi-calendar2-heart"></i> Mis reservaciones</a>
@@ -786,15 +770,17 @@
 </header>
 
 <main class="container">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      <div class="alerts">
-        {% for category, message in messages %}
-          <div class="alert {{ category }}">{{ message }}</div>
-        {% endfor %}
-      </div>
-    {% endif %}
-  {% endwith %}
+  {% if request.endpoint != 'new_reservation' %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="alerts">
+          {% for category, message in messages %}
+            <div class="alert {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+  {% endif %}
 
   {% block content %}{% endblock %}
 </main>
